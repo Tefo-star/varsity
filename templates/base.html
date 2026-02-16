@@ -14,48 +14,59 @@
 </script> -->
 
 <script>
-    // Use wss:// for HTTPS, ws:// for HTTP
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = wsProtocol + '//' + window.location.host + '/ws/online/';
-    console.log('🔌 Connecting to WebSocket:', wsUrl);
-    
-    const onlineSocket = new WebSocket(wsUrl);
-    
-    onlineSocket.onopen = function() {
-        console.log('✅ Online WebSocket connected successfully');
-        document.getElementById('online-counter').style.backgroundColor = '#00b09b';
-    };
-    
-    onlineSocket.onmessage = function(e) {
-        console.log('📨 WebSocket message received:', e.data);
-        try {
-            const data = JSON.parse(e.data);
-            if (data.type === 'online_count') {
-                document.getElementById('online-count').textContent = data.count;
+    // Wait for the DOM to be fully loaded before running WebSocket code
+    document.addEventListener('DOMContentLoaded', function() {
+        // Use wss:// for HTTPS, ws:// for HTTP
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = wsProtocol + '//' + window.location.host + '/ws/online/';
+        console.log('🔌 Connecting to WebSocket:', wsUrl);
+        
+        const onlineSocket = new WebSocket(wsUrl);
+        
+        // Get DOM elements after they're loaded
+        const onlineCounter = document.getElementById('online-counter');
+        const onlineCount = document.getElementById('online-count');
+        
+        onlineSocket.onopen = function() {
+            console.log('✅ Online WebSocket connected successfully');
+            if (onlineCounter) {
+                onlineCounter.style.backgroundColor = '#00b09b';
             }
-        } catch (error) {
-            console.error('Error parsing message:', error);
-        }
-    };
-    
-    onlineSocket.onerror = function(e) {
-        console.error('❌ WebSocket error:', e);
-        document.getElementById('online-counter').style.backgroundColor = '#ff6b6b';
-    };
-    
-    onlineSocket.onclose = function(e) {
-        console.log('🔌 WebSocket closed:', e.code, e.reason);
-        // Try to reconnect after 5 seconds
-        setTimeout(() => {
-            console.log('Attempting to reconnect...');
-            location.reload();
-        }, 5000);
-    };
-    
-    setInterval(() => {
-        if (onlineSocket.readyState === WebSocket.OPEN) {
-            onlineSocket.send(JSON.stringify({'type': 'ping'}));
-            console.log('📤 Ping sent');
-        }
-    }, 30000);
+        };
+        
+        onlineSocket.onmessage = function(e) {
+            console.log('📨 WebSocket message received:', e.data);
+            try {
+                const data = JSON.parse(e.data);
+                if (data.type === 'online_count' && onlineCount) {
+                    onlineCount.textContent = data.count;
+                }
+            } catch (error) {
+                console.error('Error parsing message:', error);
+            }
+        };
+        
+        onlineSocket.onerror = function(e) {
+            console.error('❌ WebSocket error:', e);
+            if (onlineCounter) {
+                onlineCounter.style.backgroundColor = '#ff6b6b';
+            }
+        };
+        
+        onlineSocket.onclose = function(e) {
+            console.log('🔌 WebSocket closed:', e.code, e.reason);
+            // Try to reconnect after 5 seconds
+            setTimeout(() => {
+                console.log('Attempting to reconnect...');
+                location.reload();
+            }, 5000);
+        };
+        
+        setInterval(() => {
+            if (onlineSocket.readyState === WebSocket.OPEN) {
+                onlineSocket.send(JSON.stringify({'type': 'ping'}));
+                console.log('📤 Ping sent');
+            }
+        }, 30000);
+    });
 </script>
