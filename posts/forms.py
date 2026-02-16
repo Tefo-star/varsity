@@ -6,11 +6,9 @@ class PostForm(forms.ModelForm):
         model = Post
         fields = ['post_type', 'title', 'content', 'image', 'video_url']
         widgets = {
-            'content': forms.Textarea(attrs={'rows': 4, 'placeholder': 'What\'s on your mind?', 'class': 'form-control'}),
-            'title': forms.TextInput(attrs={'placeholder': 'Post title', 'class': 'form-control'}),
-            'post_type': forms.Select(attrs={'class': 'form-control'}),
-            'image': forms.FileInput(attrs={'class': 'form-control'}),
-            'video_url': forms.URLInput(attrs={'placeholder': 'YouTube/Vimeo URL', 'class': 'form-control'}),
+            'content': forms.Textarea(attrs={'rows': 5, 'class': 'form-control', 'placeholder': 'What\'s on your mind?'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter title'}),
+            'video_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'YouTube or video URL'}),
         }
 
 class CommentForm(forms.ModelForm):
@@ -18,5 +16,5 @@ class CommentForm(forms.ModelForm):
         model = Comment
         fields = ['content']
         widgets = {
-            'content': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Add a comment...', 'class': 'form-control'}),
+            'content': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Write a comment...'}),
         }

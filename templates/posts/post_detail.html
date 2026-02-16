@@ -2,21 +2,21 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8 mx-auto">
-        <div class="card">
+        <div class="glass-card">
             <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
                     <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 10px;">{{ post.title }}</h1>
                     <div class="d-flex align-items-center flex-wrap gap-2">
                         <strong style="font-size: 1rem;">{{ post.author.username }}</strong>
                         {% if post.author.activity.university %}
-                            <span class="uni-badge">
+                            <span class="uni-badge uni-{{ post.author.activity.university }}">
                                 {% if post.author.activity.university == 'ub' %}UB{% endif %}
                                 {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
                                 {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
                                 {% if post.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
                                 {% if post.author.activity.university == 'baisago' %}ISAGO{% endif %}
                                 {% if post.author.activity.university == 'biust' %}BIUST{% endif %}
-                                {% if post.author.activity.university == 'visitor' %}VISITOR{% endif %}
+                                {% if post.author.activity.university == 'visitor' %}🌟 VISITOR{% endif %}
                             </span>
                         {% endif %}
                         <span class="text-muted" style="font-size: 0.9rem;">
@@ -25,7 +25,9 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <span class="badge">{{ post.get_post_type_display }}</span>
+                    <span class="badge" style="background: var(--primary-gradient); color: white; padding: 8px 16px; border-radius: 50px;">
+                        {{ post.get_post_type_display }}
+                    </span>
                     {% if user == post.author %}
                         <a href="{% url 'delete_post' post.id %}" class="btn" style="background: #ff416c; color: white; padding: 8px 20px; border-radius: 50px; text-decoration: none; font-size: 0.9rem;">
                             <i class="fas fa-trash me-1"></i>Delete
@@ -36,20 +38,26 @@
 
             {% if post.image %}
                 <div class="text-center mb-4">
-                    <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 500px; border-radius: 8px;">
+                    <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 500px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+                </div>
+            {% endif %}
+
+            {% if post.video_url %}
+                <div class="text-center mb-4">
+                    <iframe width="100%" height="400" src="{{ post.video_url }}" frameborder="0" allowfullscreen style="border-radius: 15px;"></iframe>
                 </div>
             {% endif %}
 
             {% if post.content %}
-                <div class="mb-4" style="color: var(--gray-800); line-height: 1.6;">
+                <div class="mb-4" style="color: #2d3436; line-height: 1.8; font-size: 1.1rem;">
                     {{ post.content|linebreaks }}
                 </div>
             {% endif %}
 
-            <hr>
+            <hr style="margin: 30px 0;">
 
             <div class="mb-4">
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
                     {% with counts=post.get_reaction_counts %}
                         <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
                             {% csrf_token %}
@@ -66,36 +74,75 @@
                             <input type="hidden" name="reaction_type" value="haha">
                             <button type="submit" class="reaction-btn">😂 {{ counts.haha }}</button>
                         </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="wow">
+                            <button type="submit" class="reaction-btn">😮 {{ counts.wow }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="sad">
+                            <button type="submit" class="reaction-btn">😢 {{ counts.sad }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="angry">
+                            <button type="submit" class="reaction-btn">😡 {{ counts.angry }}</button>
+                        </form>
                     {% endwith %}
                 </div>
             </div>
 
-            <hr>
+            <hr style="margin: 30px 0;">
 
-            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
-                Comments ({{ comments.count }})
+            <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">
+                <i class="fas fa-comments me-2"></i>Comments ({{ comments.count }})
             </h3>
 
             {% for comment in comments %}
-                <div class="card" style="padding: 16px; margin-bottom: 12px;">
+                <div class="glass-card" style="padding: 20px; margin-bottom: 15px;">
                     <div class="d-flex align-items-center mb-2">
-                        <strong>{{ comment.author.username }}</strong>
+                        <strong style="font-size: 1rem;">{{ comment.author.username }}</strong>
+                        {% if comment.author.activity.university %}
+                            <span class="uni-badge uni-{{ comment.author.activity.university }}" style="margin-left: 10px;">
+                                {% if comment.author.activity.university == 'ub' %}UB{% endif %}
+                                {% if comment.author.activity.university == 'buan' %}BUAN{% endif %}
+                                {% if comment.author.activity.university == 'botho' %}BOTHO{% endif %}
+                                {% if comment.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
+                                {% if comment.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                                {% if comment.author.activity.university == 'biust' %}BIUST{% endif %}
+                            </span>
+                        {% endif %}
                         <span class="text-muted" style="font-size: 0.85rem; margin-left: 10px;">
                             {{ comment.created_at|timesince }} ago
                         </span>
                     </div>
-                    <p style="margin: 0;">{{ comment.content }}</p>
+                    <p style="margin: 0; font-size: 1rem;">{{ comment.content }}</p>
                 </div>
             {% empty %}
-                <p class="text-muted">No comments yet.</p>
+                <div class="text-center py-4">
+                    <i class="fas fa-comment-slash fa-3x mb-3" style="color: #999;"></i>
+                    <p class="text-muted">No comments yet. Be the first to comment!</p>
+                </div>
             {% endfor %}
 
             {% if user.is_authenticated %}
-                <form method="post" class="mt-4">
-                    {% csrf_token %}
-                    {{ comment_form.as_p }}
-                    <button type="submit" class="btn-solid">Add Comment</button>
-                </form>
+                <div class="glass-card" style="padding: 25px; margin-top: 30px;">
+                    <h4 style="margin-bottom: 20px;">Add a Comment</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <textarea name="content" class="form-control" rows="3" placeholder="Write your comment..." style="width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #e0e0e0;"></textarea>
+                        </div>
+                        <button type="submit" class="btn-create" style="padding: 12px 30px;">
+                            <i class="fas fa-paper-plane me-2"></i>Post Comment
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <div class="text-center mt-4">
+                    <p><a href="{% url 'login' %}">Login</a> to add a comment</p>
+                </div>
             {% endif %}
         </div>
     </div>

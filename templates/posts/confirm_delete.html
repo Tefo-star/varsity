@@ -6,17 +6,18 @@
         <div style="font-size: 5rem; margin-bottom: 20px;">
             <i class="fas fa-exclamation-triangle" style="color: #ff416c;"></i>
         </div>
-        <h2 style="margin-bottom: 20px;">Delete Post?</h2>
-        <p style="color: #666; margin-bottom: 30px;">
-            Are you sure you want to delete "{{ post.title }}"? This action cannot be undone.
+        <h2 style="margin-bottom: 20px; font-weight: 700;">Delete Post?</h2>
+        <p style="color: #666; margin-bottom: 30px; font-size: 1.1rem;">
+            Are you sure you want to delete "<strong>{{ post.title }}</strong>"?<br>
+            This action cannot be undone.
         </p>
         
         <form method="POST" style="display: flex; gap: 15px; justify-content: center;">
             {% csrf_token %}
-            <button type="submit" class="btn-create" style="background: linear-gradient(135deg, #ff416c, #ff4b2b);">
+            <button type="submit" class="btn-create" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); padding: 12px 30px;">
                 <i class="fas fa-trash me-2"></i>Yes, Delete
             </button>
-            <a href="{% url 'post_detail' post.id %}" class="btn" style="background: #6c757d; color: white; padding: 12px 30px; border-radius: 50px;">
+            <a href="{% url 'post_detail' post.id %}" class="btn" style="background: #6c757d; color: white; padding: 12px 30px; border-radius: 50px; text-decoration: none;">
                 Cancel
             </a>
         </form>
