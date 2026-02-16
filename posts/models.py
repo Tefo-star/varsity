@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from cloudinary.models import CloudinaryField  # Add this import
 
 class Post(models.Model):
     POST_TYPES = [
@@ -15,7 +16,8 @@ class Post(models.Model):
     post_type = models.CharField(max_length=10, choices=POST_TYPES, default='TEXT')
     title = models.CharField(max_length=200)
     content = models.TextField(blank=True)
-    image = models.ImageField(upload_to='post_images/', blank=True, null=True)
+    # Changed from ImageField to CloudinaryField
+    image = CloudinaryField('image', blank=True, null=True)
     video_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
