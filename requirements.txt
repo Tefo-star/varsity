@@ -12,3 +12,4 @@ sqlparse==0.5.5
 tzdata==2025.3
 whitenoise==6.11.0
 Pillow==11.2.1
+daphne==4.1.2
