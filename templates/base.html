@@ -101,6 +101,7 @@
         .uni-botho { background: linear-gradient(135deg, #8e2de2, #4a00e0); color: white; }
         .uni-limkokwing { background: linear-gradient(135deg, #ff0080, #ff8c00); color: white; }
         .uni-baisago { background: linear-gradient(135deg, #f12711, #f5af19); color: white; }
+        .uni-biust { background: linear-gradient(135deg, #004e92, #000428); color: white; }
         .uni-visitor { background: linear-gradient(135deg, #757f9a, #d7dde8); color: #2d3436; }
 
         .online-counter {
@@ -228,6 +229,86 @@
         .creator-credit a:hover {
             text-decoration: underline;
         }
+
+        /* Mobile Responsiveness Fixes */
+        @media (max-width: 768px) {
+            .navbar-custom {
+                padding: 0.8rem 0;
+            }
+            
+            .navbar-brand {
+                font-size: 1.2rem !important;
+            }
+            
+            .navbar-nav {
+                align-items: flex-start !important;
+                width: 100%;
+                padding: 15px 0;
+            }
+            
+            .nav-item {
+                width: 100%;
+                margin: 5px 0 !important;
+            }
+            
+            .nav-link {
+                padding: 10px 15px !important;
+                width: 100%;
+                text-align: left;
+            }
+            
+            .btn-create, .online-counter {
+                width: 100%;
+                text-align: center;
+                margin: 5px 0 !important;
+            }
+            
+            .online-counter {
+                display: block;
+            }
+            
+            .uni-badge {
+                display: inline-block;
+                margin: 5px 0;
+            }
+            
+            .navbar-collapse {
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            
+            /* Fix for the announcement banner on mobile */
+            .moving-text {
+                font-size: 14px !important;
+            }
+            
+            .test-badge {
+                font-size: 10px !important;
+                padding: 3px 10px !important;
+                top: 2px !important;
+                right: 5px !important;
+            }
+            
+            .creator-credit {
+                font-size: 11px !important;
+            }
+            
+            /* Make cards more mobile-friendly */
+            .glass-card {
+                padding: 15px !important;
+                margin: 10px 0 !important;
+            }
+            
+            .page-title {
+                font-size: 2rem !important;
+            }
+            
+            /* Fix for reaction buttons */
+            .reaction-btn {
+                padding: 5px 10px !important;
+                font-size: 12px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -283,6 +364,7 @@
                                         {% if user.activity.university == 'botho' %}BOTHO{% endif %}
                                         {% if user.activity.university == 'limkokwing' %}LIMKO{% endif %}
                                         {% if user.activity.university == 'baisago' %}ISAGO{% endif %}
+                                        {% if user.activity.university == 'biust' %}BIUST{% endif %}
                                         {% if user.activity.university == 'visitor' %}🌟 VISITOR{% endif %}
                                     </span>
                                 {% endif %}
