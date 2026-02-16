@@ -1,3 +1,9 @@
+from django.db import models
+from django.contrib.auth.models import User
+from django.utils import timezone
+from cloudinary.models import CloudinaryField
+
+# Then your Post class
 class Post(models.Model):
     POST_TYPES = [
         ('MEME', 'Meme'),
@@ -15,7 +21,6 @@ class Post(models.Model):
     video_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
-    # view_count = models.IntegerField(default=0)  # REMOVE THIS LINE
     last_activity = models.DateTimeField(auto_now=True)
     
     class Meta:
@@ -34,3 +39,5 @@ class Post(models.Model):
             'angry': self.reactions.filter(reaction_type='angry').count(),
         }
         return reactions
+
+# Don't forget your other models (Comment, Reaction, UserActivity) below!
