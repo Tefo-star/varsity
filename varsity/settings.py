@@ -16,6 +16,18 @@ DEBUG = True  # Temporarily enabled to see the error
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', 'varsity-lygz.onrender.com']
 
+# CSRF Trusted Origins - Add your domain here
+CSRF_TRUSTED_ORIGINS = [
+    'https://varsity-lygz.onrender.com',
+    'https://*.onrender.com',
+]
+
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+    ]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
