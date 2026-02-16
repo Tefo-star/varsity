@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from datetime import timedelta
 from .models import Post, Comment, Reaction
 from .forms import PostForm, CommentForm
@@ -19,12 +20,19 @@ def home(request):
         if cache.get(f'online_{user.id}'):
             online_count += 1
     
-    # Check for new posts since last visit
+    # Check for new posts since last visit - FIXED JSON SERIALIZATION
     new_posts_count = 0
     if request.user.is_authenticated:
-        last_seen = request.session.get('last_seen', timezone.now())
-        new_posts_count = Post.objects.filter(created_at__gt=last_seen).count()
-        request.session['last_seen'] = timezone.now()
+        last_seen_str = request.session.get('last_seen')
+        
+        if last_seen_str:
+            # Convert string back to datetime for comparison
+            last_seen = parse_datetime(last_seen_str)
+            if last_seen:
+                new_posts_count = Post.objects.filter(created_at__gt=last_seen).count()
+        
+        # Store as ISO string (JSON serializable) NOT datetime object
+        request.session['last_seen'] = timezone.now().isoformat()
     
     context = {
         'posts': posts,
