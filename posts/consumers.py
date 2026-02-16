@@ -1,10 +1,9 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
 from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
-from django.contrib.auth.models import User
-from channels.db import database_sync_to_async
 
 class OnlineConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -55,6 +54,10 @@ class OnlineConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_online_users(self):
+        # Import inside the method to avoid AppRegistryNotReady
+        from django.contrib.auth.models import User
+        from django.core.cache import cache
+        
         cutoff = timezone.now() - timedelta(minutes=5)
         online_users = []
         for user in User.objects.filter(is_active=True):
@@ -63,4 +66,51 @@ class OnlineConsumer(AsyncWebsocketConsumer):
                 online_users.append(user)
         return online_users
 
-# ... rest of your consumers (LikeConsumer, NotificationConsumer)
+# For other consumers, apply the same pattern
+class LikeConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.post_id = self.scope['url_route']['kwargs']['post_id']
+        self.post_group_name = f'post_{self.post_id}'
+        await self.channel_layer.group_add(self.post_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.post_group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        if data.get('type') == 'like':
+            await self.channel_layer.group_send(self.post_group_name, {
+                'type': 'like_animation',
+                'user': data['user'],
+                'reaction': data['reaction'],
+                'post_id': self.post_id
+            })
+
+    async def like_animation(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'like_animation',
+            'user': event['user'],
+            'reaction': event['reaction'],
+            'post_id': event['post_id']
+        }))
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope['user']
+        if self.user.is_authenticated:
+            self.notification_group = f'notifications_{self.user.id}'
+            await self.channel_layer.group_add(self.notification_group, self.channel_name)
+            await self.accept()
+        else:
+            await self.close()
+
+    async def disconnect(self, close_code):
+        if self.user.is_authenticated:
+            await self.channel_layer.group_discard(self.notification_group, self.channel_name)
+
+    async def new_post_notification(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'new_post',
+            'count': event['count']
+        }))
