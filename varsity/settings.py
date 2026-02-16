@@ -60,14 +60,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'varsity.wsgi.application'
 ASGI_APPLICATION = 'varsity.asgi.application'
 
-# Channel layers for WebSocket
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer'
     }
 }
 
-# Database - Use PostgreSQL in production, SQLite in development
+# Database
 import dj_database_url
 if 'DATABASE_URL' in os.environ:
     DATABASES = {
