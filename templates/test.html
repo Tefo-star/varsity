@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Page</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .post { border: 2px solid #333; padding: 15px; margin: 10px 0; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>✅ TEST PAGE - TEMPLATES ARE WORKING!</h1>
+    <p><strong>User:</strong> {{ user.username }}</p>
+    <p><strong>Posts found:</strong> {{ posts.count }}</p>
+    
+    <h2>Posts:</h2>
+    {% for post in posts %}
+        <div class="post">
+            <h3>{{ post.title }}</h3>
+            <p>{{ post.content|truncatechars:100 }}</p>
+            <small>By {{ post.author.username }}</small>
+        </div>
+    {% empty %}
+        <p>No posts yet.</p>
+    {% endfor %}
+</body>
+</html>

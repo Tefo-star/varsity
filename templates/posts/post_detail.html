@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 10px;">{{ post.title }}</h1>
+                    <div class="d-flex align-items-center">
+                        <strong style="font-size: 1rem;">{{ post.author.username }}</strong>
+                        {% if post.author.activity.university %}
+                            <span class="uni-badge">
+                                {% if post.author.activity.university == 'ub' %}UB{% endif %}
+                                {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
+                                {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
+                                {% if post.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
+                                {% if post.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                                {% if post.author.activity.university == 'visitor' %}VISITOR{% endif %}
+                            </span>
+                        {% endif %}
+                        <span class="text-muted" style="font-size: 0.9rem; margin-left: 10px;">
+                            {{ post.created_at|timesince }} ago
+                        </span>
+                        <span class="text-muted" style="font-size: 0.9rem; margin-left: 10px;">
+                            {{ post.view_count }} views
+                        </span>
+                    </div>
+                </div>
+                <span class="badge">{{ post.get_post_type_display }}</span>
+            </div>
+
+            {% if post.image %}
+                <div class="text-center mb-4">
+                    <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 500px; border-radius: 8px;">
+                </div>
+            {% endif %}
+
+            {% if post.content %}
+                <div class="mb-4" style="color: var(--gray-800); line-height: 1.6;">
+                    {{ post.content|linebreaks }}
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <div class="mb-4">
+                <div class="d-flex gap-2">
+                    {% with counts=post.get_reaction_counts %}
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="like">
+                            <button type="submit" class="reaction-btn">👍 {{ counts.like }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="love">
+                            <button type="submit" class="reaction-btn">❤️ {{ counts.love }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="haha">
+                            <button type="submit" class="reaction-btn">😂 {{ counts.haha }}</button>
+                        </form>
+                    {% endwith %}
+                </div>
+            </div>
+
+            <hr>
+
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
+                Comments ({{ comments.count }})
+            </h3>
+
+            {% for comment in comments %}
+                <div class="card" style="padding: 16px; margin-bottom: 12px;">
+                    <div class="d-flex align-items-center mb-2">
+                        <strong>{{ comment.author.username }}</strong>
+                        <span class="text-muted" style="font-size: 0.85rem; margin-left: 10px;">
+                            {{ comment.created_at|timesince }} ago
+                        </span>
+                    </div>
+                    <p style="margin: 0;">{{ comment.content }}</p>
+                </div>
+            {% empty %}
+                <p class="text-muted">No comments yet.</p>
+            {% endfor %}
+
+            {% if user.is_authenticated %}
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    {{ comment_form.as_p }}
+                    <button type="submit" class="btn-solid">Add Comment</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

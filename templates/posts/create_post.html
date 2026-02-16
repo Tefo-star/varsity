@@ -1,0 +1,572 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-title">
+    <span>CREATE POST</span> ✍️
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="glass-card" style="animation: slideInUp 0.5s;">
+            <div class="text-center mb-4">
+                <div class="animated-icon mb-3">
+                    <i class="fas fa-pencil-alt fa-4x" style="color: var(--neon-purple); animation: float 3s ease-in-out infinite;"></i>
+                </div>
+                <h2 style="font-weight: 700; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">
+                    Share something with the community
+                </h2>
+                <p class="text-muted">Express yourself, ask questions, or start a discussion</p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="createPostForm">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                    <div class="mb-4 form-field" style="animation: fadeInLeft 0.5s; animation-delay: {{ forloop.counter0|divisibleby:2 }}s;">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-600 mb-2">
+                            {{ field.label }}
+                            {% if field.field.required %}<span style="color: #ff416c;">*</span>{% endif %}
+                        </label>
+                        
+                        {% if field.name == 'post_type' %}
+                            <div class="post-type-selector">
+                                {{ field }}
+                            </div>
+                        {% elif field.name == 'content' %}
+                            <div class="text-editor">
+                                {{ field }}
+                                <div class="text-editor-toolbar">
+                                    <span class="toolbar-btn" onclick="formatText('bold')"><i class="fas fa-bold"></i></span>
+                                    <span class="toolbar-btn" onclick="formatText('italic')"><i class="fas fa-italic"></i></span>
+                                    <span class="toolbar-btn" onclick="formatText('underline')"><i class="fas fa-underline"></i></span>
+                                    <span class="toolbar-btn" onclick="insertEmoji('😊')">😊</span>
+                                    <span class="toolbar-btn" onclick="insertEmoji('😂')">😂</span>
+                                    <span class="toolbar-btn" onclick="insertEmoji('❤️')">❤️</span>
+                                    <span class="toolbar-btn" onclick="insertEmoji('🔥')">🔥</span>
+                                </div>
+                            </div>
+                        {% elif field.name == 'image' %}
+                            <div class="image-upload-area" id="imageUploadArea">
+                                {{ field }}
+                                <div class="upload-placeholder text-center">
+                                    <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: var(--neon-purple);"></i>
+                                    <p class="mb-2">Drag & drop an image here or click to browse</p>
+                                    <small class="text-muted">Supports: JPG, PNG, GIF (Max 5MB)</small>
+                                </div>
+                                <div class="image-preview" id="imagePreview" style="display: none;">
+                                    <img src="" alt="Preview" style="max-width: 100%; max-height: 200px; border-radius: 10px;">
+                                    <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeImage()">
+                                        <i class="fas fa-times me-1"></i>Remove
+                                    </button>
+                                </div>
+                            </div>
+                        {% elif field.name == 'video_url' %}
+                            <div class="input-group">
+                                <span class="input-group-text" style="background: linear-gradient(135deg, #ff0080, #ff8c00); color: white; border: none;">
+                                    <i class="fab fa-youtube"></i>
+                                </span>
+                                {{ field }}
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        
+                        {% if field.help_text %}
+                            <small class="form-text text-muted mt-1">{{ field.help_text }}</small>
+                        {% endif %}
+                        
+                        {% if field.errors %}
+                            <div class="alert alert-danger mt-2" style="border-radius: 10px; animation: shake 0.5s;">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                {{ field.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                <div class="d-flex gap-3 mt-5" style="animation: fadeInUp 0.5s;">
+                    <button type="submit" class="btn-create flex-grow-1" style="padding: 15px; font-size: 1.2rem;" id="submitBtn">
+                        <span class="btn-text">
+                            <i class="fas fa-paper-plane me-2"></i>Publish Post
+                        </span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin me-2"></i>Publishing...
+                        </span>
+                    </button>
+                    <a href="{% url 'home' %}" class="btn" style="background: #6c757d; color: white; padding: 15px 30px; border-radius: 50px; transition: all 0.3s;" 
+                       onmouseover="this.style.transform='translateY(-2px)'" 
+                       onmouseout="this.style.transform='translateY(0)'">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Animations */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+    }
+
+    /* Form field styling */
+    .form-field {
+        transition: all 0.3s;
+    }
+
+    .form-field:hover {
+        transform: translateX(5px);
+    }
+
+    input, textarea, select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 15px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: white;
+    }
+
+    input:focus, textarea:focus, select:focus {
+        border-color: var(--neon-purple);
+        box-shadow: 0 0 0 3px rgba(183, 33, 255, 0.1);
+        outline: none;
+        transform: translateY(-2px);
+    }
+
+    textarea {
+        min-height: 150px;
+        resize: vertical;
+    }
+
+    /* Post type selector */
+    .post-type-selector select {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .post-type-selector select option {
+        background: white;
+        color: #333;
+    }
+
+    /* Text editor */
+    .text-editor {
+        position: relative;
+    }
+
+    .text-editor-toolbar {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+        background: white;
+        padding: 5px;
+        border-radius: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        animation: fadeInUp 0.3s;
+    }
+
+    .toolbar-btn {
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f8f9fa;
+    }
+
+    .toolbar-btn:hover {
+        background: var(--neon-purple);
+        color: white;
+        transform: scale(1.1);
+    }
+
+    /* Image upload area */
+    .image-upload-area {
+        position: relative;
+        border: 3px dashed #e0e0e0;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .image-upload-area:hover {
+        border-color: var(--neon-purple);
+        background: rgba(183, 33, 255, 0.05);
+        transform: scale(1.02);
+    }
+
+    .image-upload-area input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .image-preview {
+        text-align: center;
+        animation: fadeInUp 0.3s;
+    }
+
+    .image-preview img {
+        border: 3px solid white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Input group */
+    .input-group {
+        display: flex;
+        align-items: stretch;
+    }
+
+    .input-group-text {
+        display: flex;
+        align-items: center;
+        padding: 0 15px;
+        border-radius: 15px 0 0 15px;
+        font-size: 1.2rem;
+    }
+
+    .input-group input {
+        border-radius: 0 15px 15px 0;
+        border-left: none;
+    }
+
+    /* Submit button */
+    #submitBtn {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #f5576c);
+        background-size: 300% 300%;
+        animation: gradientShift 3s ease infinite;
+        border: none;
+    }
+
+    #submitBtn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.5);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+
+    #submitBtn:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    #submitBtn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+    }
+
+    /* Loading state */
+    .btn-loading {
+        color: white;
+    }
+
+    /* Character counter */
+    .char-counter {
+        text-align: right;
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+
+    .char-counter.warning {
+        color: #ff8c00;
+    }
+
+    .char-counter.danger {
+        color: #ff416c;
+    }
+
+    /* Form validation */
+    .is-valid {
+        border-color: #00b09b !important;
+    }
+
+    .is-invalid {
+        border-color: #ff416c !important;
+    }
+
+    .valid-feedback, .invalid-feedback {
+        font-size: 0.9rem;
+        margin-top: 5px;
+    }
+
+    .valid-feedback {
+        color: #00b09b;
+    }
+
+    .invalid-feedback {
+        color: #ff416c;
+    }
+</style>
+
+<script>
+    // Image upload preview
+    document.addEventListener('DOMContentLoaded', function() {
+        const imageInput = document.querySelector('input[type="file"]');
+        const uploadArea = document.getElementById('imageUploadArea');
+        const preview = document.getElementById('imagePreview');
+        const placeholder = document.querySelector('.upload-placeholder');
+        
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.querySelector('img').src = e.target.result;
+                        preview.style.display = 'block';
+                        placeholder.style.display = 'none';
+                        uploadArea.style.borderColor = '#00b09b';
+                        
+                        // Animation
+                        preview.style.animation = 'fadeInUp 0.3s';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+
+    function removeImage() {
+        const imageInput = document.querySelector('input[type="file"]');
+        const preview = document.getElementById('imagePreview');
+        const placeholder = document.querySelector('.upload-placeholder');
+        const uploadArea = document.getElementById('imageUploadArea');
+        
+        imageInput.value = '';
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+        uploadArea.style.borderColor = '#e0e0e0';
+    }
+
+    // Text editor functions
+    function formatText(type) {
+        const textarea = document.querySelector('textarea[name="content"]');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        
+        let formattedText = '';
+        switch(type) {
+            case 'bold':
+                formattedText = `**${selectedText}**`;
+                break;
+            case 'italic':
+                formattedText = `*${selectedText}*`;
+                break;
+            case 'underline':
+                formattedText = `__${selectedText}__`;
+                break;
+        }
+        
+        textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+        
+        // Animation
+        const btn = event.target.closest('.toolbar-btn');
+        btn.style.animation = 'pulse 0.3s';
+        setTimeout(() => btn.style.animation = '', 300);
+    }
+
+    function insertEmoji(emoji) {
+        const textarea = document.querySelector('textarea[name="content"]');
+        const start = textarea.selectionStart;
+        textarea.value = textarea.value.substring(0, start) + emoji + textarea.value.substring(textarea.selectionEnd);
+        
+        // Animation
+        const btn = event.target.closest('.toolbar-btn');
+        btn.style.animation = 'pulse 0.3s';
+        setTimeout(() => btn.style.animation = '', 300);
+    }
+
+    // Character counter
+    document.addEventListener('DOMContentLoaded', function() {
+        const textarea = document.querySelector('textarea[name="content"]');
+        if (textarea) {
+            const counter = document.createElement('div');
+            counter.className = 'char-counter';
+            textarea.parentNode.appendChild(counter);
+            
+            function updateCounter() {
+                const length = textarea.value.length;
+                counter.textContent = `${length} characters`;
+                
+                if (length > 500) {
+                    counter.classList.add('danger');
+                    counter.classList.remove('warning');
+                } else if (length > 300) {
+                    counter.classList.add('warning');
+                    counter.classList.remove('danger');
+                } else {
+                    counter.classList.remove('warning', 'danger');
+                }
+            }
+            
+            textarea.addEventListener('input', updateCounter);
+            updateCounter();
+        }
+    });
+
+    // Form submission animation
+    document.getElementById('createPostForm').addEventListener('submit', function(e) {
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const btnLoading = submitBtn.querySelector('.btn-loading');
+        
+        btnText.style.display = 'none';
+        btnLoading.style.display = 'inline-block';
+        submitBtn.disabled = true;
+        
+        // Optional: prevent double submission
+        setTimeout(() => {
+            submitBtn.disabled = false;
+            btnText.style.display = 'inline-block';
+            btnLoading.style.display = 'none';
+        }, 5000); // Reset after 5 seconds if something goes wrong
+    });
+
+    // Field validation animations
+    document.querySelectorAll('input, textarea, select').forEach(field => {
+        field.addEventListener('invalid', function(e) {
+            e.preventDefault();
+            this.classList.add('is-invalid');
+            this.style.animation = 'shake 0.5s';
+            setTimeout(() => this.style.animation = '', 500);
+        });
+        
+        field.addEventListener('input', function() {
+            if (this.checkValidity()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+            }
+        });
+    });
+
+    // Drag and drop for image upload
+    const uploadArea = document.getElementById('imageUploadArea');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight() {
+        uploadArea.style.borderColor = 'var(--neon-purple)';
+        uploadArea.style.background = 'rgba(183, 33, 255, 0.1)';
+        uploadArea.style.transform = 'scale(1.02)';
+    }
+
+    function unhighlight() {
+        uploadArea.style.borderColor = '#e0e0e0';
+        uploadArea.style.background = '';
+        uploadArea.style.transform = 'scale(1)';
+    }
+
+    uploadArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        const imageInput = document.querySelector('input[type="file"]');
+        
+        if (files.length > 0) {
+            imageInput.files = files;
+            // Trigger change event
+            const event = new Event('change', { bubbles: true });
+            imageInput.dispatchEvent(event);
+        }
+    }
+</script>
+{% endblock %}
