@@ -25,6 +25,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
+    'cloudinary',  # Added Cloudinary
+    'cloudinary_storage',  # Added Cloudinary storage
     'posts',
     'accounts',
 ]
@@ -112,9 +114,20 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Cloudinary configuration
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# This automatically parses the CLOUDINARY_URL from environment variables
+cloudinary.config(secure=True)
+
+# Media files - Using Cloudinary for storage
+MEDIA_URL = '/media/'  # Kept for compatibility, but Cloudinary will handle actual storage
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Local fallback
+
+# Set Cloudinary as the default storage for media files
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Authentication settings
 LOGIN_URL = 'login'
