@@ -4,6 +4,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
+from channels.db import database_sync_to_async
 
 class OnlineConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -11,9 +12,9 @@ class OnlineConsumer(AsyncWebsocketConsumer):
         if self.user.is_authenticated:
             self.online_group_name = 'online_users'
             await self.channel_layer.group_add(self.online_group_name, self.channel_name)
-            cache.set(f'online_{self.user.id}', timezone.now(), timeout=300)
-            await self.update_online_count()
+            cache.set(f'online_{self.user.id}', timezone.now().timestamp(), timeout=300)
             await self.accept()
+            await self.update_online_count()
         else:
             await self.close()
 
@@ -25,26 +26,32 @@ class OnlineConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        if data['type'] == 'ping':
-            cache.set(f'online_{self.user.id}', timezone.now(), timeout=300)
+        if data.get('type') == 'ping':
+            cache.set(f'online_{self.user.id}', timezone.now().timestamp(), timeout=300)
 
     async def update_online_count(self):
-        online_users = []
-        cutoff = timezone.now() - timedelta(minutes=5)
-        for user in User.objects.filter(is_active=True):
-            if cache.get(f'online_{user.id}'):
-                online_users.append(user)
+        online_users = await self.get_online_users()
         
         await self.channel_layer.group_send(self.online_group_name, {
-            'type': 'online_count',
+            'type': 'online_count_update',
             'count': len(online_users)
         })
 
-    async def online_count(self, event):
+    async def online_count_update(self, event):
         await self.send(text_data=json.dumps({
             'type': 'online_count',
             'count': event['count']
         }))
+
+    @database_sync_to_async
+    def get_online_users(self):
+        cutoff = timezone.now() - timedelta(minutes=5)
+        online_users = []
+        for user in User.objects.filter(is_active=True):
+            last_seen = cache.get(f'online_{user.id}')
+            if last_seen:
+                online_users.append(user)
+        return online_users
 
 class LikeConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -58,7 +65,7 @@ class LikeConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        if data['type'] == 'like':
+        if data.get('type') == 'like':
             await self.channel_layer.group_send(self.post_group_name, {
                 'type': 'like_animation',
                 'user': data['user'],

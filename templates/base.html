@@ -420,13 +420,31 @@
     </script> -->
 
     <script>
-        const onlineSocket = new WebSocket('ws://' + window.location.host + '/ws/online/');
+        // Use wss:// for HTTPS, ws:// for HTTP
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const onlineSocket = new WebSocket(wsProtocol + '//' + window.location.host + '/ws/online/');
+        
+        onlineSocket.onopen = function() {
+            console.log('Online WebSocket connected');
+        };
         
         onlineSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             if (data.type === 'online_count') {
                 document.getElementById('online-count').textContent = data.count;
             }
+        };
+        
+        onlineSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+        };
+        
+        onlineSocket.onclose = function() {
+            console.log('WebSocket closed, will reconnect...');
+            // Try to reconnect after 5 seconds
+            setTimeout(() => {
+                location.reload();
+            }, 5000);
         };
         
         setInterval(() => {
