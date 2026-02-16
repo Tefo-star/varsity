@@ -25,8 +25,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
-    'cloudinary',  # Added Cloudinary
-    'cloudinary_storage',  # Added Cloudinary storage
+    'cloudinary',
+    'cloudinary_storage',
     'posts',
     'accounts',
 ]
@@ -123,8 +123,8 @@ import cloudinary.api
 cloudinary.config(secure=True)
 
 # Media files - Using Cloudinary for storage
-MEDIA_URL = '/media/'  # Kept for compatibility, but Cloudinary will handle actual storage
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Local fallback
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Set Cloudinary as the default storage for media files
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
