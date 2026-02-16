@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px;">
+    <div class="glass-card">
+        <h2 class="page-title" style="font-size: 2rem; margin-bottom: 30px;">
+            <i class="fas fa-user-astronaut me-2"></i>{{ user.username }}'s Profile
+        </h2>
+        
+        <div style="margin-bottom: 30px;">
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+            <p><strong>Current University:</strong> 
+                {% if current_university %}
+                    <span class="uni-badge uni-{{ current_university }}">
+                        {% if current_university == 'ub' %}UB{% endif %}
+                        {% if current_university == 'buan' %}BUAN{% endif %}
+                        {% if current_university == 'botho' %}BOTHO{% endif %}
+                        {% if current_university == 'limkokwing' %}LIMKO{% endif %}
+                        {% if current_university == 'baisago' %}ISAGO{% endif %}
+                        {% if current_university == 'biust' %}BIUST{% endif %}
+                        {% if current_university == 'visitor' %}🌟 VISITOR{% endif %}
+                    </span>
+                {% else %}
+                    <span class="uni-badge uni-visitor">Not set</span>
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="glass-card" style="padding: 20px;">
+            <h3 style="margin-bottom: 20px;">Update Your University</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: 600;">Select your university:</label>
+                    <select name="university" style="width: 100%; padding: 12px; border-radius: 50px; border: 2px solid #ddd; font-family: 'Poppins', sans-serif;">
+                        {% for value, label in university_choices %}
+                            <option value="{{ value }}" {% if current_university == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-create" style="width: 100%;">
+                    <i class="fas fa-save me-2"></i>Update University
+                </button>
+            </form>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{% url 'home' %}" class="nav-link" style="display: inline-block;">
+                <i class="fas fa-arrow-left me-1"></i>Back to Feed
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

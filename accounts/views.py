@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django import forms
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from posts.models import UserActivity
 
 UNIVERSITY_CHOICES = [
@@ -12,6 +13,7 @@ UNIVERSITY_CHOICES = [
     ('botho', 'Botho University'),
     ('limkokwing', 'Limkokwing University'),
     ('baisago', 'BA ISAGO University'),
+    ('biust', 'Botswana International University of Science and Technology (BIUST)'),
     ('newera', 'New Era College'),
     ('gaborone', 'Gaborone University College'),
     ('boitekanelo', 'Boitekanelo College'),
@@ -79,3 +81,22 @@ def logout_view(request):
     logout(request)
     messages.info(request, 'You have been logged out.')
     return redirect('home')
+
+@login_required
+def profile(request):
+    user_activity, created = UserActivity.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        university = request.POST.get('university')
+        if university:
+            user_activity.university = university
+            user_activity.save()
+            messages.success(request, f'University updated to {dict(UNIVERSITY_CHOICES).get(university)}!')
+            return redirect('profile')
+    
+    context = {
+        'user': request.user,
+        'current_university': user_activity.university,
+        'university_choices': UNIVERSITY_CHOICES
+    }
+    return render(request, 'accounts/profile.html', context)
