@@ -6,7 +6,7 @@
             <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
                     <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 10px;">{{ post.title }}</h1>
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
                         <strong style="font-size: 1rem;">{{ post.author.username }}</strong>
                         {% if post.author.activity.university %}
                             <span class="uni-badge">
@@ -15,18 +15,23 @@
                                 {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
                                 {% if post.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
                                 {% if post.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                                {% if post.author.activity.university == 'biust' %}BIUST{% endif %}
                                 {% if post.author.activity.university == 'visitor' %}VISITOR{% endif %}
                             </span>
                         {% endif %}
-                        <span class="text-muted" style="font-size: 0.9rem; margin-left: 10px;">
+                        <span class="text-muted" style="font-size: 0.9rem;">
                             {{ post.created_at|timesince }} ago
-                        </span>
-                        <span class="text-muted" style="font-size: 0.9rem; margin-left: 10px;">
-                            {{ post.view_count }} views
                         </span>
                     </div>
                 </div>
-                <span class="badge">{{ post.get_post_type_display }}</span>
+                <div class="d-flex gap-2">
+                    <span class="badge">{{ post.get_post_type_display }}</span>
+                    {% if user == post.author %}
+                        <a href="{% url 'delete_post' post.id %}" class="btn" style="background: #ff416c; color: white; padding: 8px 20px; border-radius: 50px; text-decoration: none; font-size: 0.9rem;">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </a>
+                    {% endif %}
+                </div>
             </div>
 
             {% if post.image %}
