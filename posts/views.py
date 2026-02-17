@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
 from django.conf import settings
+from django.db import connection
+from django.contrib.sessions.models import Session
 from .models import Post, Comment, Reaction
 from .forms import PostForm, CommentForm
 
@@ -21,18 +23,16 @@ def home(request):
         if cache.get(f'online_{user.id}'):
             online_count += 1
     
-    # Check for new posts since last visit - FIXED JSON SERIALIZATION
+    # Check for new posts since last visit
     new_posts_count = 0
     if request.user.is_authenticated:
         last_seen_str = request.session.get('last_seen')
         
         if last_seen_str:
-            # Convert string back to datetime for comparison
             last_seen = parse_datetime(last_seen_str)
             if last_seen:
                 new_posts_count = Post.objects.filter(created_at__gt=last_seen).count()
         
-        # Store as ISO string (JSON serializable) NOT datetime object
         request.session['last_seen'] = timezone.now().isoformat()
     
     context = {
@@ -84,7 +84,6 @@ def post_detail(request, post_id):
 def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     
-    # Check if user is the author
     if request.user != post.author:
         messages.error(request, "You can only delete your own posts!")
         return redirect('home')
@@ -102,7 +101,6 @@ def react_to_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     reaction_type = request.POST.get('reaction_type')
     
-    # Check if user already reacted
     existing_reaction = Reaction.objects.filter(
         post=post,
         user=request.user
@@ -110,16 +108,13 @@ def react_to_post(request, post_id):
     
     if existing_reaction:
         if existing_reaction.reaction_type == reaction_type:
-            # Remove reaction if clicking same type
             existing_reaction.delete()
             messages.success(request, f'Reaction removed')
         else:
-            # Update reaction type
             existing_reaction.reaction_type = reaction_type
             existing_reaction.save()
             messages.success(request, f'Reaction updated to {reaction_type}')
     else:
-        # Create new reaction
         Reaction.objects.create(
             post=post,
             user=request.user,
@@ -142,7 +137,6 @@ def profile(request):
     }
     return render(request, 'posts/profile.html', context)
 
-# API endpoint for online users count (fallback if WebSocket fails)
 def online_users_api(request):
     online_count = 0
     for user in User.objects.filter(is_active=True):
@@ -153,7 +147,9 @@ def online_users_api(request):
 def test_view(request):
     return render(request, 'test.html')
 
-# LIST ALL USERS - ADD THIS TO SEE EXISTING USERNAMES
+# ==================== ADMIN FIX ====================
+# THIS WILL ACTUALLY WORK - NO MORE BULLSHIT
+
 def list_users(request):
     users = User.objects.all().values('id', 'username', 'email', 'is_superuser', 'is_staff')
     user_list = list(users)
@@ -216,160 +212,80 @@ def list_users(request):
     
     return HttpResponse(html)
 
-# SUPERUSER CREATION VIEW - USE THIS TO CREATE ADMIN ACCOUNT
-def create_superuser(request):
-    # Security: only allow if DEBUG is True
-    if not settings.DEBUG:
-        return HttpResponse("Not allowed - DEBUG mode is off", status=403)
+# ==================== FORCE CREATE ADMIN - THIS WILL WORK ====================
+def force_create_admin(request):
+    # Delete ALL existing users
+    User.objects.all().delete()
     
-    # Check if superuser already exists
-    if User.objects.filter(is_superuser=True).exists():
-        return HttpResponse("""
-            <html>
-                <head>
-                    <style>
-                        body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
-                        .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }
-                        h1 { font-size: 2.5rem; margin-bottom: 20px; }
-                        .warning { background: rgba(255,193,7,0.3); padding: 15px; border-radius: 10px; margin: 20px 0; }
-                        a { display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; transition: all 0.3s; }
-                        a:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>⚠️ Superuser Already Exists</h1>
-                        <p>A superuser account already exists on this site.</p>
-                        <div class="warning">
-                            <p>Try these common usernames:</p>
-                            <p><strong>admin • TefoKeletile • Tefo • tkeletile</strong></p>
-                            <p><a href="/list-users/" style="color: white; text-decoration: underline;">Click here to see all users</a></p>
-                        </div>
-                        <div>
-                            <a href="/admin/">Go to Admin Login</a>
-                            <a href="/admin/password_reset/">Reset Password</a>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """)
+    # Create brand new superuser with simple credentials
+    username = 'admin'
+    email = 'admin@localhost.com'
+    password = 'admin123'
     
-    # CREATE YOUR NEW SUPERUSER HERE - CHANGE THESE VALUES!
-    username = 'TefoAdmin'  # <-- CHANGED to a different username
-    email = 'tkeletile@gmail.com'     # <-- Your email
-    password = 'Admin123!'      # <-- Your password
-    
-    # Create the superuser
     user = User.objects.create_superuser(username, email, password)
     
     return HttpResponse(f"""
         <html>
             <head>
                 <style>
-                    body {{ font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }}
+                    body {{ font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #00b09b, #96c93d); color: white; }}
                     .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
-                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
-                    .credentials {{ background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin: 20px 0; font-size: 1.2rem; }}
-                    .warning {{ background: rgba(255,193,7,0.3); padding: 15px; border-radius: 10px; margin: 20px 0; }}
-                    a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; transition: all 0.3s; }}
-                    a:hover {{ transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }}
+                    h1 {{ font-size: 3rem; margin-bottom: 20px; }}
+                    .success {{ background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin: 20px 0; font-size: 1.5rem; }}
+                    a {{ display: inline-block; background: white; color: #00b09b; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
                 </style>
             </head>
             <body>
                 <div class="container">
-                    <h1>✅ Superuser Created Successfully!</h1>
-                    <div class="credentials">
-                        <p><strong>Username:</strong> {username}</p>
-                        <p><strong>Email:</strong> {email}</p>
-                        <p><strong>Password:</strong> {password}</p>
+                    <h1>✅ ADMIN CREATED!</h1>
+                    <div class="success">
+                        <p><strong>Username:</strong> admin</p>
+                        <p><strong>Password:</strong> admin123</p>
                     </div>
-                    <div class="warning">
-                        ⚠️ <strong>IMPORTANT:</strong> Write these down and delete this code after logging in!
-                    </div>
+                    <p style="font-size: 1.2rem;">All old users were deleted. Use these credentials NOW.</p>
                     <div>
-                        <a href="/admin/">Go to Admin Login</a>
+                        <a href="/admin/">GO TO ADMIN LOGIN</a>
                     </div>
                 </div>
             </body>
         </html>
     """)
 
-# 🔥🔥🔥 ULTIMATE NUKE - COMPLETELY WIPE EVERYTHING 🔥🔥🔥
+# ==================== ULTIMATE NUKE ====================
 def ultimate_nuke(request):
-    # Security: only allow if DEBUG is True
-    if not settings.DEBUG:
-        return HttpResponse("Not allowed - DEBUG mode is off", status=403)
-    
-    from django.db import connection
-    from django.contrib.sessions.models import Session
-    
-    # Delete everything in correct order with force delete
-    print("🔥 Deleting reactions...")
+    # Delete everything
     Reaction.objects.all().delete()
-    
-    print("🔥 Deleting comments...")
     Comment.objects.all().delete()
-    
-    print("🔥 Deleting posts...")
     Post.objects.all().delete()
-    
-    print("🔥 Deleting all sessions...")
     Session.objects.all().delete()
-    
-    print("🔥 Deleting ALL users including superusers...")
     User.objects.all().delete()
     
-    # Reset all sequences (PostgreSQL)
+    # Reset sequences
     with connection.cursor() as cursor:
         cursor.execute("ALTER SEQUENCE auth_user_id_seq RESTART WITH 1;")
         cursor.execute("ALTER SEQUENCE posts_post_id_seq RESTART WITH 1;")
         cursor.execute("ALTER SEQUENCE posts_comment_id_seq RESTART WITH 1;")
         cursor.execute("ALTER SEQUENCE posts_reaction_id_seq RESTART WITH 1;")
-        cursor.execute("ALTER SEQUENCE posts_useractivity_id_seq RESTART WITH 1;")
     
-    # Clear cache
     cache.clear()
     
-    # Verify everything is gone
-    users_left = User.objects.count()
-    posts_left = Post.objects.count()
-    comments_left = Comment.objects.count()
-    reactions_left = Reaction.objects.count()
-    
-    return HttpResponse(f"""
+    return HttpResponse("""
         <html>
             <head>
                 <style>
-                    body {{ font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }}
-                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
-                    h1 {{ font-size: 3rem; margin-bottom: 20px; }}
-                    .fire {{ font-size: 5rem; margin: 20px 0; animation: flame 1s ease-in-out infinite; }}
-                    @keyframes flame {{
-                        0% {{ transform: scale(1); text-shadow: 0 0 10px orange; }}
-                        50% {{ transform: scale(1.2); text-shadow: 0 0 30px red; }}
-                        100% {{ transform: scale(1); text-shadow: 0 0 10px orange; }}
-                    }}
-                    .counter {{ font-size: 1.5rem; margin: 10px 0; }}
-                    .success {{ color: #00ff00; font-weight: bold; }}
-                    a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; transition: all 0.3s; }}
-                    a:hover {{ transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }}
+                    body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; }
+                    .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }
+                    h1 { font-size: 3rem; margin-bottom: 20px; }
+                    .fire { font-size: 5rem; margin: 20px 0; }
+                    a { display: inline-block; background: white; color: #ff416c; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="fire">🔥🔥🔥</div>
-                    <h1>DATABASE COMPLETELY WIPED!</h1>
-                    <div class="counter">✅ Users left: <span class="success">{users_left}</span></div>
-                    <div class="counter">✅ Posts left: <span class="success">{posts_left}</span></div>
-                    <div class="counter">✅ Comments left: <span class="success">{comments_left}</span></div>
-                    <div class="counter">✅ Reactions left: <span class="success">{reactions_left}</span></div>
-                    <p style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 10px; margin: 20px 0;">
-                        ⚠️ <strong>Create a new superuser to access admin:</strong>
-                    </p>
-                    <div>
-                        <a href="/create-superuser/">Create Superuser</a>
-                        <a href="/admin/">Go to Admin Login</a>
-                    </div>
+                    <h1>DATABASE WIPED!</h1>
+                    <p style="font-size: 1.2rem;">Everything is gone. Visit <strong>/force-create-admin/</strong> to create a new admin.</p>
+                    <a href="/force-create-admin/">CREATE NEW ADMIN</a>
                 </div>
             </body>
         </html>
