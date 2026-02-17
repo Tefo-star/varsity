@@ -7,19 +7,19 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Force Django to use secure proxy headers (for Render)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-j=0lzhn=psi%7d&t+8$3s43u0r2j7u3ds$()z@bfa@on(*si+!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# Dynamic host detection
-def get_hosts():
-    return ['localhost', '127.0.0.1', '.onrender.com', 'varsity-lygz.onrender.com']
+# Host settings
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', 'varsity-lygz.onrender.com']
 
-ALLOWED_HOSTS = get_hosts()
-
-# CSRF Trusted Origins - Dynamic based on request
+# CSRF Trusted Origins
 CSRF_TRUSTED_ORIGINS = [
     'https://varsity-lygz.onrender.com',
     'https://*.onrender.com',
@@ -29,36 +29,34 @@ if DEBUG:
     CSRF_TRUSTED_ORIGINS += [
         'http://localhost:8000',
         'http://127.0.0.1:8000',
-        'http://localhost:8000',
     ]
 
-# ============ DYNAMIC COOKIE SETTINGS ============
-# These adapt based on where the request comes from
+# ============ SIMPLE COOKIE SETTINGS THAT WORK EVERYWHERE ============
+# Same exact settings for both local and Render - no more IF statements
 
-# Detect if we're on Render or local
-IS_RENDER = os.environ.get('RENDER', False) or 'RENDER' in os.environ
+# Let browser handle the domain - remove domain restriction
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = None
 
-# Session settings that work BOTH locally and on Render
-if IS_RENDER:
-    # Render (production) settings
-    SESSION_COOKIE_DOMAIN = '.onrender.com'
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_SAMESITE = 'Lax'
-else:
-    # Local development settings
-    SESSION_COOKIE_DOMAIN = None  # Important! Let browser handle it
-    SESSION_COOKIE_SECURE = False
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    CSRF_COOKIE_SECURE = False
-    CSRF_COOKIE_SAMESITE = 'Lax'
+# Cookie security - set to work with both HTTP and HTTPS
+SESSION_COOKIE_SECURE = False  # False works with both local and Render
+CSRF_COOKIE_SECURE = False     # False works with both local and Render
 
-# Common cookie settings
+# SameSite settings
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Cookie paths - ensure they're sent everywhere
+SESSION_COOKIE_PATH = '/'
+CSRF_COOKIE_PATH = '/'
+
+# HTTP-only settings
 SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # Must be False for admin to work
+
+# Cookie ages
 SESSION_COOKIE_AGE = 1209600  # 2 weeks
-CSRF_COOKIE_HTTPONLY = False
-CSRF_COOKIE_AGE = 31449600  # 1 year
+CSRF_COOKIE_AGE = 31449600    # 1 year
 
 # Ensure session engine uses database
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
