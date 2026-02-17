@@ -27,6 +27,9 @@ urlpatterns = [
     # NUKE DATABASE - Completely wipe all data
     path('nuke/', views.nuke_database, name='nuke'),
     
+    # ULTIMATE NUKE - Force wipe everything with sequence reset
+    path('ultimate-nuke/', views.ultimate_nuke, name='ultimate_nuke'),
+    
     # API endpoint for online users count (fallback if WebSocket fails)
     path('api/online-count/', views.online_users_api, name='online_users_api'),
     
