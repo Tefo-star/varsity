@@ -8,6 +8,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('posts.urls')),
     path('accounts/', include('accounts.urls')),
+    path('resources/', include('resources.urls')),  # ADD THIS LINE
 ]
 
 if settings.DEBUG:
