@@ -185,5 +185,5 @@ CACHES = {
 }
 
 # ============ GOOGLE ANALYTICS ============
-# Replace with your actual Google Analytics Measurement ID (G-XXXXXXXXXX)
-GANALYTICS_TRACKING_CODE = 'G-XXXXXXXXXX'  # YOU MUST UPDATE THIS WITH YOUR REAL ID
+# Your actual Google Analytics Measurement ID
+GANALYTICS_TRACKING_CODE = 'G-Z3MDMT6983'
