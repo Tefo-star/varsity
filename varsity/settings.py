@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'posts',
     'accounts',
+    'ganalytics',  # ADDED for Google Analytics
 ]
 
 MIDDLEWARE = [
@@ -182,3 +183,7 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+# ============ GOOGLE ANALYTICS ============
+# Replace with your actual Google Analytics Measurement ID (G-XXXXXXXXXX)
+GANALYTICS_TRACKING_CODE = 'G-XXXXXXXXXX'  # YOU MUST UPDATE THIS WITH YOUR REAL ID
