@@ -5,9 +5,40 @@
     <span>📚 RESOURCES HUB</span>
 </div>
 
-<div class="glass-card text-center py-5">
-    <i class="fas fa-book-open fa-4x mb-3" style="color: var(--neon-purple);"></i>
-    <h3>Coming Soon!</h3>
-    <p class="text-muted">Past papers and revision materials will be available here.</p>
+<!-- Universities Grid -->
+<div class="row">
+    {% for university in universities %}
+        <div class="col-md-4 mb-4">
+            <a href="{% url 'university_detail' university.code %}" style="text-decoration: none;">
+                <div class="glass-card text-center h-100">
+                    {% if university.logo %}
+                        <img src="{{ university.logo.url }}" alt="{{ university.name }}" style="max-height: 80px; margin-bottom: 15px;">
+                    {% else %}
+                        <i class="fas fa-university fa-4x mb-3" style="color: var(--neon-purple);"></i>
+                    {% endif %}
+                    <h4>{{ university.name }}</h4>
+                    <p class="text-muted">{{ university.course_count }} courses</p>
+                </div>
+            </a>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="glass-card text-center py-5">
+                <i class="fas fa-university fa-4x mb-3" style="color: #ff416c;"></i>
+                <h3>No universities added yet</h3>
+                <p class="text-muted">Check back soon!</p>
+            </div>
+        </div>
+    {% endfor %}
 </div>
+
+<!-- Admin quick add (only visible to superuser) -->
+{% if user.is_superuser %}
+<div class="glass-card mt-4">
+    <h4>Quick Admin Actions</h4>
+    <p class="text-muted">Add universities and courses through Django admin:</p>
+    <a href="/admin/resources/university/add/" class="btn-create me-2">Add University</a>
+    <a href="/admin/resources/course/add/" class="btn-create">Add Course</a>
+</div>
+{% endif %}
 {% endblock %}

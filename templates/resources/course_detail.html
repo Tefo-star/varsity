@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-title">
+    <span>{{ course.code }}: {{ course.name }}</span>
+</div>
+
+<div class="mb-4">
+    <a href="{% url 'university_detail' university.code %}" class="btn-create" style="background: #6c757d;">
+        <i class="fas fa-arrow-left me-2"></i>Back to {{ university.name }}
+    </a>
+</div>
+
+<div class="glass-card">
+    <h4>Coming Soon!</h4>
+    <p class="text-muted">Past papers, tests, and quizzes for {{ course.code }} will be available here.</p>
+</div>
+{% endblock %}
