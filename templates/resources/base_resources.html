@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .resource-tree {
+        list-style: none;
+        padding-left: 20px;
+    }
+    .resource-tree li {
+        margin: 10px 0;
+        position: relative;
+    }
+    .folder-icon {
+        color: #ffd700;
+        margin-right: 10px;
+    }
+    .file-icon {
+        color: #ff416c;
+        margin-right: 10px;
+    }
+    .resource-badge {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-left: 10px;
+    }
+    .year-tab {
+        background: rgba(255,255,255,0.1);
+        padding: 10px 20px;
+        border-radius: 30px;
+        margin-right: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .year-tab:hover, .year-tab.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3">
+            <div class="glass-card">
+                <h4 class="mb-3">📚 Resource Hub</h4>
+                <div class="list-group">
+                    <a href="{% url 'resources_dashboard' %}" class="list-group-item list-group-item-action">
+                        🏠 Dashboard
+                    </a>
+                    <a href="{% url 'upload_resource' %}" class="list-group-item list-group-item-action">
+                        📤 Upload Resource
+                    </a>
+                </div>
+                
+                <!-- Universities list -->
+                <h5 class="mt-4 mb-3">Universities</h5>
+                {% for uni in universities %}
+                    <a href="{% url 'university_detail' uni.code %}" class="d-block mb-2">
+                        {{ uni.name }}
+                        <span class="badge bg-secondary">{{ uni.total_resources }}</span>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Main content -->
+        <div class="col-md-9">
+            {% block resources_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
