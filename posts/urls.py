@@ -27,17 +27,18 @@ urlpatterns = [
     # ==================== ADMIN FIX ROUTES ====================
     # 🔥🔥🔥 USE THESE IN ORDER TO FIX ADMIN 🔥🔥🔥
     
-    # STEP 1: List all users (to see what's in database)
+    # List all users (to see what's in database)
     path('list-users/', views.list_users, name='list_users'),
     
-    # STEP 2: Completely wipe EVERYTHING (users, posts, comments, reactions)
+    # Completely wipe EVERYTHING (users, posts, comments, reactions)
     path('ultimate-nuke/', views.ultimate_nuke, name='ultimate_nuke'),
     
-    # STEP 3: FORCE CREATE ADMIN - DELETES ALL EXISTING USERS AND CREATES NEW ONE
-    # This ignores all checks and just makes a working admin
+    # FORCE CREATE ADMIN - DELETES ALL EXISTING USERS AND CREATES NEW ONE
     path('force-create-admin/', views.force_create_admin, name='force_create_admin'),
     
-    # ==================== OLD STUFF (KEPT FOR REFERENCE) ====================
-    # Create a new superuser admin account (old version)
-    # path('create-superuser/', views.create_superuser, name='create_superuser'),
+    # FORCE LOGIN - Programmatically logs you in as admin
+    path('force-login/', views.force_login, name='force_login'),
+    
+    # DEBUG SESSION - Shows what's happening with sessions
+    path('debug-session/', views.debug_session, name='debug_session'),
 ]

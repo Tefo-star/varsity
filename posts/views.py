@@ -11,6 +11,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import connection
 from django.contrib.sessions.models import Session
+from django.contrib.auth import login
 from .models import Post, Comment, Reaction
 from .forms import PostForm, CommentForm
 
@@ -147,9 +148,7 @@ def online_users_api(request):
 def test_view(request):
     return render(request, 'test.html')
 
-# ==================== ADMIN FIX ====================
-# THIS WILL ACTUALLY WORK - NO MORE BULLSHIT
-
+# ==================== LIST USERS ====================
 def list_users(request):
     users = User.objects.all().values('id', 'username', 'email', 'is_superuser', 'is_staff')
     user_list = list(users)
@@ -212,7 +211,7 @@ def list_users(request):
     
     return HttpResponse(html)
 
-# ==================== FORCE CREATE ADMIN - THIS WILL WORK ====================
+# ==================== FORCE CREATE ADMIN ====================
 def force_create_admin(request):
     # Delete ALL existing users
     User.objects.all().delete()
@@ -244,7 +243,60 @@ def force_create_admin(request):
                     </div>
                     <p style="font-size: 1.2rem;">All old users were deleted. Use these credentials NOW.</p>
                     <div>
+                        <a href="/force-login/">FORCE LOGIN</a>
                         <a href="/admin/">GO TO ADMIN LOGIN</a>
+                    </div>
+                </div>
+            </body>
+        </html>
+    """)
+
+# ==================== FORCE LOGIN ====================
+def force_login(request):
+    # Get the admin user
+    try:
+        admin_user = User.objects.get(username='admin')
+    except User.DoesNotExist:
+        return HttpResponse("""
+            <html>
+                <head>
+                    <style>
+                        body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; }
+                        .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>❌ Admin user not found</h1>
+                        <p>Create one first at <a href="/force-create-admin/" style="color: white;">/force-create-admin/</a></p>
+                    </div>
+                </body>
+            </html>
+        """)
+    
+    # Log them in programmatically
+    login(request, admin_user)
+    
+    return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #00b09b, #96c93d); color: white; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
+                    h1 {{ font-size: 3rem; margin-bottom: 20px; }}
+                    .success {{ background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                    a {{ display: inline-block; background: white; color: #00b09b; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>✅ FORCE LOGIN SUCCESSFUL!</h1>
+                    <div class="success">
+                        <p><strong>You are now logged in as:</strong> admin</p>
+                    </div>
+                    <p>Click below to go to admin panel (you should already be logged in)</p>
+                    <div>
+                        <a href="/admin/">GO TO ADMIN</a>
                     </div>
                 </div>
             </body>
@@ -276,7 +328,12 @@ def ultimate_nuke(request):
                     body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; }
                     .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }
                     h1 { font-size: 3rem; margin-bottom: 20px; }
-                    .fire { font-size: 5rem; margin: 20px 0; }
+                    .fire { font-size: 5rem; margin: 20px 0; animation: flame 1s ease-in-out infinite; }
+                    @keyframes flame {
+                        0% { transform: scale(1); text-shadow: 0 0 10px orange; }
+                        50% { transform: scale(1.2); text-shadow: 0 0 30px red; }
+                        100% { transform: scale(1); text-shadow: 0 0 10px orange; }
+                    }
                     a { display: inline-block; background: white; color: #ff416c; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }
                 </style>
             </head>
@@ -284,9 +341,84 @@ def ultimate_nuke(request):
                 <div class="container">
                     <div class="fire">🔥🔥🔥</div>
                     <h1>DATABASE WIPED!</h1>
-                    <p style="font-size: 1.2rem;">Everything is gone. Visit <strong>/force-create-admin/</strong> to create a new admin.</p>
+                    <p style="font-size: 1.2rem;">Everything is gone. Create a new admin:</p>
                     <a href="/force-create-admin/">CREATE NEW ADMIN</a>
                 </div>
             </body>
         </html>
     """)
+
+# ==================== DEBUG SESSION ====================
+def debug_session(request):
+    import pprint
+    from django.utils import timezone
+    
+    # Get all sessions
+    sessions = Session.objects.all()
+    session_info = []
+    
+    for session in sessions:
+        try:
+            data = session.get_decoded()
+            session_info.append({
+                'session_key': session.session_key[:10] + '...',
+                'expire_date': session.expire_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'user_id': data.get('_auth_user_id'),
+            })
+        except:
+            pass
+    
+    # Get request session
+    request_session = dict(request.session.items())
+    
+    html = f"""
+    <html>
+        <head>
+            <style>
+                body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; }}
+                h1, h2 {{ text-align: center; }}
+                pre {{ background: #333; color: #0f0; padding: 15px; border-radius: 10px; overflow: auto; text-align: left; }}
+                table {{ width: 100%; border-collapse: collapse; }}
+                th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.2); }}
+                a {{ display: inline-block; background: white; color: #667eea; padding: 10px 20px; border-radius: 50px; text-decoration: none; margin: 10px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🔍 Session Debug</h1>
+                
+                <h2>📋 Request Session:</h2>
+                <pre>{pprint.pformat(request_session)}</pre>
+                
+                <h2>💾 Database Sessions ({len(session_info)}):</h2>
+                <table>
+                    <tr>
+                        <th>Session Key</th>
+                        <th>Expires</th>
+                        <th>User ID</th>
+                    </tr>
+    """
+    
+    for s in session_info:
+        html += f"""
+                    <tr>
+                        <td>{s['session_key']}</td>
+                        <td>{s['expire_date']}</td>
+                        <td>{s['user_id']}</td>
+                    </tr>
+        """
+    
+    html += """
+                </table>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="/admin/">Try Admin Again</a>
+                    <a href="/force-login/">Force Login</a>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+    
+    return HttpResponse(html)
