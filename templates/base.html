@@ -420,8 +420,17 @@
     </script> -->
 
     <script>
-        // Wait for the DOM to be fully loaded before running WebSocket code
+        // FIXED: Only run WebSocket on pages with online counter - NO PAGE RELOADS
         document.addEventListener('DOMContentLoaded', function() {
+            const onlineCounter = document.getElementById('online-counter');
+            const onlineCount = document.getElementById('online-count');
+            
+            // If online counter doesn't exist (like login/register pages), skip WebSocket
+            if (!onlineCounter || !onlineCount) {
+                console.log('Online counter not on this page - skipping WebSocket connection');
+                return;
+            }
+            
             // Use wss:// for HTTPS, ws:// for HTTP
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = wsProtocol + '//' + window.location.host + '/ws/online/';
@@ -429,22 +438,16 @@
             
             const onlineSocket = new WebSocket(wsUrl);
             
-            // Get DOM elements after they're loaded
-            const onlineCounter = document.getElementById('online-counter');
-            const onlineCount = document.getElementById('online-count');
-            
             onlineSocket.onopen = function() {
                 console.log('✅ Online WebSocket connected successfully');
-                if (onlineCounter) {
-                    onlineCounter.style.backgroundColor = '#00b09b';
-                }
+                onlineCounter.style.backgroundColor = '#00b09b';
             };
             
             onlineSocket.onmessage = function(e) {
                 console.log('📨 WebSocket message received:', e.data);
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.type === 'online_count' && onlineCount) {
+                    if (data.type === 'online_count') {
                         onlineCount.textContent = data.count;
                     }
                 } catch (error) {
@@ -453,21 +456,19 @@
             };
             
             onlineSocket.onerror = function(e) {
-                console.error('❌ WebSocket error:', e);
-                if (onlineCounter) {
-                    onlineCounter.style.backgroundColor = '#ff6b6b';
-                }
+                console.error('❌ WebSocket error - but NOT reloading page');
+                onlineCounter.style.backgroundColor = '#ff6b6b';
             };
             
             onlineSocket.onclose = function(e) {
-                console.log('🔌 WebSocket closed:', e.code, e.reason);
-                // Try to reconnect after 5 seconds
-                setTimeout(() => {
-                    console.log('Attempting to reconnect...');
-                    location.reload();
-                }, 5000);
+                console.log('🔌 WebSocket closed - will NOT reload page');
+                // REMOVED THE location.reload() THAT WAS CAUSING THE PROBLEM
+                // Just change color to show disconnected
+                onlineCounter.style.backgroundColor = '#6c757d';
+                onlineCounter.style.animation = 'none';
             };
             
+            // Send pings every 30 seconds to keep connection alive
             setInterval(() => {
                 if (onlineSocket.readyState === WebSocket.OPEN) {
                     onlineSocket.send(JSON.stringify({'type': 'ping'}));
