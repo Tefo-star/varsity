@@ -422,3 +422,62 @@ def debug_session(request):
     """
     
     return HttpResponse(html)
+
+# ==================== EMERGENCY NUKE - FORCE DELETE EVERYTHING WITH RAW SQL ====================
+def emergency_nuke(request):
+    # RAW SQL to TRUNCATE all tables (FORCE DELETE)
+    with connection.cursor() as cursor:
+        cursor.execute("TRUNCATE TABLE auth_user CASCADE;")
+        cursor.execute("TRUNCATE TABLE posts_post CASCADE;")
+        cursor.execute("TRUNCATE TABLE posts_comment CASCADE;")
+        cursor.execute("TRUNCATE TABLE posts_reaction CASCADE;")
+        cursor.execute("TRUNCATE TABLE posts_useractivity CASCADE;")
+        cursor.execute("TRUNCATE TABLE django_session CASCADE;")
+        cursor.execute("TRUNCATE TABLE django_admin_log CASCADE;")
+        cursor.execute("TRUNCATE TABLE django_content_type CASCADE;")
+        cursor.execute("TRUNCATE TABLE auth_permission CASCADE;")
+        cursor.execute("TRUNCATE TABLE auth_group CASCADE;")
+        cursor.execute("TRUNCATE TABLE auth_group_permissions CASCADE;")
+        cursor.execute("TRUNCATE TABLE django_migrations CASCADE;")
+        
+        # Reset all sequences
+        cursor.execute("ALTER SEQUENCE auth_user_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE posts_post_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE posts_comment_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE posts_reaction_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE posts_useractivity_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE django_admin_log_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE django_content_type_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE auth_permission_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE auth_group_id_seq RESTART WITH 1;")
+        cursor.execute("ALTER SEQUENCE django_migrations_id_seq RESTART WITH 1;")
+    
+    cache.clear()
+    
+    return HttpResponse("""
+        <html>
+            <head>
+                <style>
+                    body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; }
+                    .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }
+                    h1 { font-size: 3rem; margin-bottom: 20px; }
+                    .fire { font-size: 5rem; margin: 20px 0; animation: flame 1s ease-in-out infinite; }
+                    @keyframes flame {
+                        0% { transform: scale(1); text-shadow: 0 0 10px orange; }
+                        50% { transform: scale(1.2); text-shadow: 0 0 30px red; }
+                        100% { transform: scale(1); text-shadow: 0 0 10px orange; }
+                    }
+                    a { display: inline-block; background: white; color: #ff416c; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="fire">🔥🔥🔥</div>
+                    <h1>🔥 EMERGENCY NUKE COMPLETE! 🔥</h1>
+                    <p style="font-size: 1.2rem;">All tables TRUNCATED with CASCADE. Database is COMPLETELY EMPTY.</p>
+                    <p style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px;">Next step: Create a new admin</p>
+                    <a href="/force-create-admin/">CREATE NEW ADMIN</a>
+                </div>
+            </body>
+        </html>
+    """)

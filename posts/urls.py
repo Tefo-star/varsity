@@ -3,42 +3,19 @@ from . import views
 
 urlpatterns = [
     # ==================== MAIN SITE ROUTES ====================
-    # Home page - displays all posts
     path('', views.home, name='home'),
-    
-    # Post creation
     path('post/new/', views.create_post, name='create_post'),
-    
-    # Post detail view (individual post page)
     path('post/<int:post_id>/', views.post_detail, name='post_detail'),
-    
-    # Delete a post
     path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
-    
-    # React to a post (like, love, haha, etc.)
     path('post/<int:post_id>/react/', views.react_to_post, name='react_to_post'),
-    
-    # API endpoint for online users count (fallback if WebSocket fails)
     path('api/online-count/', views.online_users_api, name='online_users_api'),
-    
-    # Test view (for debugging)
     path('test/', views.test_view, name='test'),
     
     # ==================== ADMIN FIX ROUTES ====================
-    # 🔥🔥🔥 USE THESE IN ORDER TO FIX ADMIN 🔥🔥🔥
-    
-    # List all users (to see what's in database)
     path('list-users/', views.list_users, name='list_users'),
-    
-    # Completely wipe EVERYTHING (users, posts, comments, reactions)
     path('ultimate-nuke/', views.ultimate_nuke, name='ultimate_nuke'),
-    
-    # FORCE CREATE ADMIN - DELETES ALL EXISTING USERS AND CREATES NEW ONE
     path('force-create-admin/', views.force_create_admin, name='force_create_admin'),
-    
-    # FORCE LOGIN - Programmatically logs you in as admin
     path('force-login/', views.force_login, name='force_login'),
-    
-    # DEBUG SESSION - Shows what's happening with sessions
     path('debug-session/', views.debug_session, name='debug_session'),
+    path('emergency-nuke/', views.emergency_nuke, name='emergency_nuke'),  # NEW
 ]
