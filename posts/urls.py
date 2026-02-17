@@ -17,12 +17,15 @@ urlpatterns = [
     # React to a post (like, love, haha, etc.)
     path('post/<int:post_id>/react/', views.react_to_post, name='react_to_post'),
     
-    # SUPERUSER MANAGEMENT (TEMPORARY - REMOVE AFTER USE)
+    # 🔥 TEMPORARY ADMIN UTILITIES - REMOVE AFTER USE 🔥
     # Create a new superuser admin account
     path('create-superuser/', views.create_superuser, name='create_superuser'),
     
     # List all registered users (useful for finding usernames)
     path('list-users/', views.list_users, name='list_users'),
+    
+    # NUKE DATABASE - Completely wipe all data
+    path('nuke/', views.nuke_database, name='nuke'),
     
     # API endpoint for online users count (fallback if WebSocket fails)
     path('api/online-count/', views.online_users_api, name='online_users_api'),
