@@ -74,7 +74,8 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'posts',
     'accounts',
-    'ganalytics',  # ADDED for Google Analytics
+    'ganalytics',
+    'resources',  # ADDED - Resources app for past papers and revision materials
 ]
 
 MIDDLEWARE = [
