@@ -24,10 +24,7 @@ urlpatterns = [
     # List all registered users (useful for finding usernames)
     path('list-users/', views.list_users, name='list_users'),
     
-    # NUKE DATABASE - Completely wipe all data
-    path('nuke/', views.nuke_database, name='nuke'),
-    
-    # ULTIMATE NUKE - Force wipe everything with sequence reset
+    # ULTIMATE NUKE - Force wipe everything with sequence reset (FIXED FUNCTION NAME)
     path('ultimate-nuke/', views.ultimate_nuke, name='ultimate_nuke'),
     
     # API endpoint for online users count (fallback if WebSocket fails)
