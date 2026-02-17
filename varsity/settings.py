@@ -152,3 +152,11 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+# Session settings for Render
+SESSION_COOKIE_DOMAIN = '.onrender.com'  # Note the leading dot
+SESSION_COOKIE_SECURE = True  # Since you're using HTTPS
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # Must be False for JavaScript to read the CSRF token
