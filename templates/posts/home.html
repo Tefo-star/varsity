@@ -1,248 +1,160 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
 <div class="page-title">
-    <span>DISCOVER</span>
+    <span>DISCOVER</span> 🔥
+    {% if user.is_authenticated and new_posts_count > 0 %}
+        <span class="badge" style="background: #ff416c; margin-left: 10px; font-size: 1rem;">
+            {{ new_posts_count }} new post{{ new_posts_count|pluralize }} since your last visit!
+        </span>
+    {% endif %}
 </div>
 
 <div class="row">
-    <div class="col-md-8 mx-auto">
-        {% if user.is_authenticated and new_posts > 0 %}
-            <div class="glass-card text-center mb-4" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; animation: slideInDown 0.5s;">
-                <i class="fas fa-bell fa-2x me-2"></i>
-                <strong class="fs-4">{{ new_posts }}</strong> new post{{ new_posts|pluralize }} since your last visit!
-            </div>
-        {% endif %}
-        
+    <div class="col-lg-8 mx-auto">
         {% for post in posts %}
-            <div class="glass-card" style="animation: fadeInUp 0.5s; animation-delay: {{ forloop.counter0|divisibleby:3 }}s;">
-                <div class="d-flex justify-content-between align-items-start mb-4">
-                    <div>
-                        <h2 class="h3 mb-3" style="font-weight: 800; color: #333;">
-                            {{ post.title }}
-                        </h2>
-                        <div class="d-flex align-items-center flex-wrap">
-                            <i class="fas fa-user-circle fa-2x me-2" style="color: var(--neon-purple);"></i>
-                            <div>
-                                <span style="font-weight: 700; font-size: 1.2rem;">{{ post.author.username }}</span>
+            <div class="glass-card" style="animation: slideInUp 0.5s; animation-delay: {{ forloop.counter0|divisibleby:3 }}s;">
+                <!-- Post Header -->
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                            <span style="color: white; font-weight: 700; font-size: 1.2rem;">{{ post.author.username|first|upper }}</span>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                <strong style="font-size: 1.1rem;">{{ post.author.username }}</strong>
                                 {% if post.author.activity.university %}
                                     <span class="uni-badge uni-{{ post.author.activity.university }}">
                                         <i class="fas fa-graduation-cap me-1"></i>
-                                        {% if post.author.activity.university == 'ub' %}University of Botswana{% endif %}
+                                        {% if post.author.activity.university == 'ub' %}UB{% endif %}
                                         {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
-                                        {% if post.author.activity.university == 'botho' %}Botho University{% endif %}
-                                        {% if post.author.activity.university == 'limkokwing' %}Limkokwing{% endif %}
-                                        {% if post.author.activity.university == 'baisago' %}BA ISAGO{% endif %}
-                                        {% if post.author.activity.university == 'visitor' %}🌟 Visitor{% endif %}
+                                        {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
+                                        {% if post.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
+                                        {% if post.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                                        {% if post.author.activity.university == 'biust' %}BIUST{% endif %}
+                                        {% if post.author.activity.university == 'visitor' %}🌟 VISITOR{% endif %}
                                     </span>
                                 {% endif %}
-                                <div>
-                                    <small class="text-muted">
-                                        <i class="far fa-clock me-1"></i>{{ post.created_at|timesince }} ago
-                                        <span class="mx-2">•</span>
-                                        <i class="far fa-eye me-1"></i>{{ post.view_count }} views
-                                    </small>
-                                </div>
+                            </div>
+                            <div class="text-muted" style="font-size: 0.9rem;">
+                                {{ post.created_at|timesince }} ago
                             </div>
                         </div>
                     </div>
-                    <span class="badge" style="background: linear-gradient(135deg, #ff0080, #ff8c00); color: white; padding: 12px 25px; border-radius: 50px; font-size: 1rem; font-weight: 600;">
+                    <span class="badge" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 8px 16px; border-radius: 50px;">
                         {{ post.get_post_type_display }}
                     </span>
                 </div>
 
-                {% if post.image %}
-                    <div class="text-center mb-4 position-relative overflow-hidden" style="border-radius: 20px;">
-                        <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 400px; transition: transform 0.5s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent); transform: translateX(-100%); animation: shimmer 2s infinite;"></div>
-                    </div>
-                {% endif %}
+                <!-- Post Title -->
+                <h3 style="font-weight: 700; margin-bottom: 15px; font-size: 1.5rem;">{{ post.title }}</h3>
 
+                <!-- Post Content (Full, no Read More) -->
                 {% if post.content %}
-                    <div class="mb-4 p-4" style="background: linear-gradient(135deg, #f5f7fa, #c3cfe2); border-radius: 20px; font-size: 1.1rem;">
-                        <i class="fas fa-quote-left me-2" style="color: var(--neon-purple);"></i>
-                        {{ post.content|truncatechars:200 }}
-                        <i class="fas fa-quote-right ms-2" style="color: var(--neon-purple);"></i>
+                    <div style="color: #2d3436; line-height: 1.7; margin-bottom: 20px; font-size: 1rem;">
+                        {{ post.content|linebreaks }}
                     </div>
                 {% endif %}
 
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div class="d-flex gap-3">
-                        {% with counts=post.get_reaction_counts %}
-                            <span class="reaction-btn" style="background: linear-gradient(135deg, #1877F2, #0D5AB9); color: white; animation: popIn 0.3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                <i class="fas fa-thumbs-up"></i> <span class="reaction-count">{{ counts.like }}</span>
-                            </span>
-                            <span class="reaction-btn" style="background: linear-gradient(135deg, #F33E58, #D1001F); color: white;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                <i class="fas fa-heart"></i> <span class="reaction-count">{{ counts.love }}</span>
-                            </span>
-                            <span class="reaction-btn" style="background: linear-gradient(135deg, #F7B125, #F59E0B); color: white;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                <i class="fas fa-laugh-squint"></i> <span class="reaction-count">{{ counts.haha }}</span>
-                            </span>
-                            <span class="reaction-btn" style="background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                <i class="fas fa-comment"></i> <span class="reaction-count">{{ post.comments.count }}</span>
-                            </span>
-                        {% endwith %}
+                <!-- Post Image -->
+                {% if post.image %}
+                    <div class="text-center mb-4">
+                        <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 400px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
                     </div>
-                    <a href="{% url 'post_detail' post.id %}" class="btn-create btn-lg" style="position: relative; overflow: hidden;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                        <span class="position-relative z-index-1">Read More</span>
-                        <span class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent); transform: translateX(-100%); animation: shimmer 2s infinite;"></span>
-                    </a>
+                {% endif %}
+
+                <!-- Post Video -->
+                {% if post.video_url %}
+                    <div class="text-center mb-4">
+                        <iframe width="100%" height="400" src="{{ post.video_url }}" frameborder="0" allowfullscreen style="border-radius: 15px;"></iframe>
+                    </div>
+                {% endif %}
+
+                <!-- Reactions -->
+                <div class="d-flex gap-2 flex-wrap mb-3">
+                    {% with counts=post.get_reaction_counts %}
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="like">
+                            <button type="submit" class="reaction-btn">👍 {{ counts.like }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="love">
+                            <button type="submit" class="reaction-btn">❤️ {{ counts.love }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="haha">
+                            <button type="submit" class="reaction-btn">😂 {{ counts.haha }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="wow">
+                            <button type="submit" class="reaction-btn">😮 {{ counts.wow }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="sad">
+                            <button type="submit" class="reaction-btn">😢 {{ counts.sad }}</button>
+                        </form>
+                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="reaction_type" value="angry">
+                            <button type="submit" class="reaction-btn">😡 {{ counts.angry }}</button>
+                        </form>
+                    {% endwith %}
+                </div>
+
+                <!-- Comments Section -->
+                <div style="margin-top: 20px;">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-comments me-2" style="color: #667eea;"></i>
+                        <span style="font-weight: 600;">Comments ({{ post.comments.count }})</span>
+                    </div>
+                    
+                    {% for comment in post.comments.all|slice:":3" %}
+                        <div style="background: rgba(0,0,0,0.02); padding: 12px; border-radius: 15px; margin-bottom: 10px;">
+                            <div class="d-flex align-items-center mb-1">
+                                <strong style="font-size: 0.9rem;">{{ comment.author.username }}</strong>
+                                {% if comment.author.activity.university %}
+                                    <span class="uni-badge uni-{{ comment.author.activity.university }}" style="font-size: 0.7rem; padding: 2px 8px; margin-left: 8px;">
+                                        {% if comment.author.activity.university == 'ub' %}UB{% endif %}
+                                        {% if comment.author.activity.university == 'buan' %}BUAN{% endif %}
+                                        {% if comment.author.activity.university == 'botho' %}BOTHO{% endif %}
+                                        {% if comment.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
+                                        {% if comment.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                                        {% if comment.author.activity.university == 'biust' %}BIUST{% endif %}
+                                    </span>
+                                {% endif %}
+                                <span class="text-muted" style="font-size: 0.75rem; margin-left: 8px;">
+                                    {{ comment.created_at|timesince }} ago
+                                </span>
+                            </div>
+                            <p style="margin: 0; font-size: 0.95rem;">{{ comment.content }}</p>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted" style="font-size: 0.9rem;">No comments yet.</p>
+                    {% endfor %}
+                    
+                    {% if post.comments.count > 3 %}
+                        <a href="{% url 'post_detail' post.id %}" style="color: #667eea; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
+                            View all {{ post.comments.count }} comments →
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         {% empty %}
-            <div class="glass-card text-center py-5" style="animation: fadeInUp 0.5s;">
-                <i class="fas fa-pencil-alt fa-4x mb-3" style="color: var(--neon-purple);"></i>
-                <h2 class="mb-3">No posts yet</h2>
-                <p class="text-muted fs-5">Be the first to share something!</p>
+            <div class="glass-card text-center py-5">
+                <i class="fas fa-smile-wink fa-4x mb-3" style="color: #667eea;"></i>
+                <h3>No posts yet!</h3>
+                <p class="text-muted">Be the first to share something with the community!</p>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'create_post' %}" class="btn-create btn-lg mt-4" style="animation: pulse 2s infinite;">
-                        <i class="fas fa-plus-circle me-2"></i>Create Post
-                    </a>
-                {% else %}
-                    <a href="{% url 'register' %}" class="btn-create btn-lg mt-4" style="animation: pulse 2s infinite;">
-                        <i class="fas fa-user-plus me-2"></i>Join Now
-                    </a>
+                    <a href="{% url 'create_post' %}" class="btn-create mt-3">Create Post</a>
                 {% endif %}
             </div>
         {% endfor %}
     </div>
 </div>
-
-<style>
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes slideInDown {
-        from {
-            opacity: 0;
-            transform: translateY(-30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes popIn {
-        0% {
-            transform: scale(0.8);
-            opacity: 0;
-        }
-        50% {
-            transform: scale(1.1);
-        }
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-    }
-
-    @keyframes shimmer {
-        0% {
-            transform: translateX(-100%);
-        }
-        20% {
-            transform: translateX(100%);
-        }
-        100% {
-            transform: translateX(100%);
-        }
-    }
-
-    @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
-        }
-        70% {
-            box-shadow: 0 0 0 15px rgba(102, 126, 234, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
-        }
-    }
-
-    .glass-card {
-        animation: fadeInUp 0.5s;
-        animation-fill-mode: both;
-    }
-
-    .reaction-btn, .btn-create {
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .reaction-btn:hover {
-        transform: scale(1.1) rotate(2deg);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-
-    .btn-create:hover {
-        transform: translateY(-3px) scale(1.05);
-        box-shadow: 0 15px 35px rgba(255,0,102,0.4);
-    }
-
-    .badge {
-        transition: all 0.3s;
-    }
-
-    .badge:hover {
-        transform: rotate(2deg) scale(1.05);
-    }
-
-    /* Loading animation for images */
-    .position-relative.overflow-hidden {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .position-relative.overflow-hidden::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        animation: loadingShimmer 1.5s infinite;
-    }
-
-    @keyframes loadingShimmer {
-        0% {
-            transform: translateX(-100%);
-        }
-        100% {
-            transform: translateX(100%);
-        }
-    }
-</style>
-
-<script>
-    // Intersection Observer for scroll animations
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.animation = 'fadeInUp 0.5s forwards';
-            }
-        });
-    }, { threshold: 0.1 });
-
-    document.querySelectorAll('.glass-card').forEach(el => {
-        el.style.opacity = '0';
-        observer.observe(el);
-    });
-
-    // Add hover sound effect (optional - remove if you don't want sound)
-    // document.querySelectorAll('.reaction-btn, .btn-create').forEach(el => {
-    //     el.addEventListener('mouseenter', () => {
-    //         const audio = new Audio('data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVQAAABhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5/gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8=');
-    //         audio.play();
-    //     });
-    // });
-</script>
 {% endblock %}
