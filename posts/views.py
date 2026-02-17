@@ -2,12 +2,13 @@ from django.contrib.auth.models import User
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
+from django.conf import settings
 from .models import Post, Comment, Reaction
 from .forms import PostForm, CommentForm
 
@@ -151,3 +152,80 @@ def online_users_api(request):
 
 def test_view(request):
     return render(request, 'test.html')
+
+# SUPERUSER CREATION VIEW - USE THIS TO CREATE ADMIN ACCOUNT
+def create_superuser(request):
+    # Security: only allow if DEBUG is True
+    if not settings.DEBUG:
+        return HttpResponse("Not allowed - DEBUG mode is off", status=403)
+    
+    # Check if superuser already exists
+    if User.objects.filter(is_superuser=True).exists():
+        return HttpResponse("""
+            <html>
+                <head>
+                    <style>
+                        body { font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+                        .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }
+                        h1 { font-size: 2.5rem; margin-bottom: 20px; }
+                        .warning { background: rgba(255,193,7,0.3); padding: 15px; border-radius: 10px; margin: 20px 0; }
+                        a { display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; transition: all 0.3s; }
+                        a:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>⚠️ Superuser Already Exists</h1>
+                        <p>A superuser account already exists on this site.</p>
+                        <div class="warning">
+                            <p>Try these common usernames:</p>
+                            <p><strong>admin • TefoKeletile • Tefo • tkeletile</strong></p>
+                        </div>
+                        <div>
+                            <a href="/admin/">Go to Admin Login</a>
+                            <a href="/admin/password_reset/">Reset Password</a>
+                        </div>
+                    </div>
+                </body>
+            </html>
+        """)
+    
+    # CREATE YOUR NEW SUPERUSER HERE - CHANGE THESE VALUES!
+    username = 'TefoKeletile'  # <-- CHANGE THIS to your desired username
+    email = 'tkeletile@gmail.com'     # <-- CHANGE THIS to your email
+    password = 'Admin123!'      # <-- CHANGE THIS to a secure password
+    
+    # Create the superuser
+    user = User.objects.create_superuser(username, email, password)
+    
+    return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .credentials {{ background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin: 20px 0; font-size: 1.2rem; }}
+                    .warning {{ background: rgba(255,193,7,0.3); padding: 15px; border-radius: 10px; margin: 20px 0; }}
+                    a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; transition: all 0.3s; }}
+                    a:hover {{ transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>✅ Superuser Created Successfully!</h1>
+                    <div class="credentials">
+                        <p><strong>Username:</strong> {username}</p>
+                        <p><strong>Email:</strong> {email}</p>
+                        <p><strong>Password:</strong> {password}</p>
+                    </div>
+                    <div class="warning">
+                        ⚠️ <strong>IMPORTANT:</strong> Write these down and delete this code after logging in!
+                    </div>
+                    <div>
+                        <a href="/admin/">Go to Admin Login</a>
+                    </div>
+                </div>
+            </body>
+        </html>
+    """)
