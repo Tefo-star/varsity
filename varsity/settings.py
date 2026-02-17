@@ -28,6 +28,21 @@ if DEBUG:
         'http://127.0.0.1:8000',
     ]
 
+# Session and Cookie Settings for Render
+SESSION_COOKIE_DOMAIN = '.onrender.com'  # Note the leading dot
+SESSION_COOKIE_SECURE = True  # Since you're using HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # Must be False for admin to work
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_AGE = 31449600  # 1 year in seconds
+
+# Ensure session engine uses database (default)
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -152,11 +167,3 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
-
-# Session settings for Render
-SESSION_COOKIE_DOMAIN = '.onrender.com'  # Note the leading dot
-SESSION_COOKIE_SECURE = True  # Since you're using HTTPS
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = False  # Must be False for JavaScript to read the CSRF token
