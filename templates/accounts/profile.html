@@ -3,28 +3,41 @@
 {% block content %}
 <div class="container" style="max-width: 600px;">
     <div class="glass-card">
-        <h2 class="page-title" style="font-size: 2rem; margin-bottom: 30px;">
-            <i class="fas fa-user-astronaut me-2"></i>{{ user.username }}'s Profile
-        </h2>
+        <div class="text-center mb-4">
+            <div style="width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <span style="color: white; font-weight: 700; font-size: 2.5rem;">{{ user.username|first|upper }}</span>
+            </div>
+            <h2 class="page-title" style="font-size: 2rem; margin-bottom: 10px;">{{ user.username }}'s Profile</h2>
+            {% if current_university %}
+                <span class="uni-badge uni-{{ current_university }}">
+                    {% if current_university == 'ub' %}University of Botswana{% endif %}
+                    {% if current_university == 'buan' %}BUAN{% endif %}
+                    {% if current_university == 'botho' %}Botho University{% endif %}
+                    {% if current_university == 'limkokwing' %}Limkokwing University{% endif %}
+                    {% if current_university == 'baisago' %}BA ISAGO University{% endif %}
+                    {% if current_university == 'biust' %}BIUST{% endif %}
+                    {% if current_university == 'visitor' %}🌟 Visitor{% endif %}
+                </span>
+            {% endif %}
+        </div>
         
-        <div style="margin-bottom: 30px;">
-            <p><strong>Email:</strong> {{ user.email }}</p>
-            <p><strong>Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
-            <p><strong>Current University:</strong> 
-                {% if current_university %}
-                    <span class="uni-badge uni-{{ current_university }}">
-                        {% if current_university == 'ub' %}UB{% endif %}
-                        {% if current_university == 'buan' %}BUAN{% endif %}
-                        {% if current_university == 'botho' %}BOTHO{% endif %}
-                        {% if current_university == 'limkokwing' %}LIMKO{% endif %}
-                        {% if current_university == 'baisago' %}ISAGO{% endif %}
-                        {% if current_university == 'biust' %}BIUST{% endif %}
-                        {% if current_university == 'visitor' %}🌟 VISITOR{% endif %}
-                    </span>
-                {% else %}
-                    <span class="uni-badge uni-visitor">Not set</span>
-                {% endif %}
-            </p>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="glass-card" style="padding: 15px;">
+                    <h5 style="font-weight: 600; margin-bottom: 15px;">Account Info</h5>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Joined:</strong> {{ user.date_joined|date:"F j, Y" }}</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="glass-card" style="padding: 15px;">
+                    <h5 style="font-weight: 600; margin-bottom: 15px;">Stats</h5>
+                    <p><strong>Posts:</strong> {{ user.posts.count }}</p>
+                    <p><strong>Comments:</strong> {{ user.comment_set.count }}</p>
+                    <p><strong>Reactions given:</strong> {{ user.reaction_set.count }}</p>
+                </div>
+            </div>
         </div>
         
         <div class="glass-card" style="padding: 20px;">

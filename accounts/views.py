@@ -21,14 +21,21 @@ UNIVERSITY_CHOICES = [
 ]
 
 class CustomUserCreationForm(forms.ModelForm):
-    username = forms.CharField(max_length=150)
-    password1 = forms.CharField(label='Password', widget=forms.PasswordInput)
-    password2 = forms.CharField(label='Confirm Password', widget=forms.PasswordInput)
-    university = forms.ChoiceField(choices=UNIVERSITY_CHOICES)
+    username = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Choose a username'}))
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter your email'}))
+    password1 = forms.CharField(label='Password', widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter password'}))
+    password2 = forms.CharField(label='Confirm Password', widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm password'}))
+    university = forms.ChoiceField(choices=UNIVERSITY_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     
     class Meta:
         model = User
-        fields = ['username', 'password1', 'password2', 'university']
+        fields = ['username', 'email', 'password1', 'password2', 'university']
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("This email is already registered. Please use a different email.")
+        return email
     
     def clean_password2(self):
         password1 = self.cleaned_data.get('password1')
@@ -40,6 +47,7 @@ class CustomUserCreationForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
+        user.email = self.cleaned_data['email']
         if commit:
             user.save()
             # Save university to activity
