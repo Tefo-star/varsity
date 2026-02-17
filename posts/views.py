@@ -153,6 +153,69 @@ def online_users_api(request):
 def test_view(request):
     return render(request, 'test.html')
 
+# LIST ALL USERS - ADD THIS TO SEE EXISTING USERNAMES
+def list_users(request):
+    users = User.objects.all().values('id', 'username', 'email', 'is_superuser', 'is_staff')
+    user_list = list(users)
+    
+    html = """
+    <html>
+        <head>
+            <style>
+                body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }
+                .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; }
+                h1 { text-align: center; margin-bottom: 30px; }
+                table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }
+                th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+                th { background: rgba(0,0,0,0.3); font-weight: 600; }
+                tr:hover { background: rgba(255,255,255,0.1); }
+                .badge { background: #ffd700; color: #333; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }
+                .admin-badge { background: #ff416c; color: white; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }
+                a { display: inline-block; margin-top: 20px; color: white; text-decoration: none; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>👥 Registered Users</h1>
+                <table>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Type</th>
+                    </tr>
+    """
+    
+    for user in user_list:
+        user_type = ""
+        if user['is_superuser']:
+            user_type = '<span class="admin-badge">SUPERUSER</span>'
+        elif user['is_staff']:
+            user_type = '<span class="admin-badge">STAFF</span>'
+        else:
+            user_type = '<span class="badge">USER</span>'
+            
+        html += f"""
+                    <tr>
+                        <td>{user['id']}</td>
+                        <td><strong>{user['username']}</strong></td>
+                        <td>{user['email']}</td>
+                        <td>{user_type}</td>
+                    </tr>
+        """
+    
+    html += """
+                </table>
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="/admin/">Go to Admin Login →</a>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+    
+    return HttpResponse(html)
+
 # SUPERUSER CREATION VIEW - USE THIS TO CREATE ADMIN ACCOUNT
 def create_superuser(request):
     # Security: only allow if DEBUG is True
@@ -180,6 +243,7 @@ def create_superuser(request):
                         <div class="warning">
                             <p>Try these common usernames:</p>
                             <p><strong>admin • TefoKeletile • Tefo • tkeletile</strong></p>
+                            <p><a href="/list-users/" style="color: white; text-decoration: underline;">Click here to see all users</a></p>
                         </div>
                         <div>
                             <a href="/admin/">Go to Admin Login</a>
@@ -191,9 +255,9 @@ def create_superuser(request):
         """)
     
     # CREATE YOUR NEW SUPERUSER HERE - CHANGE THESE VALUES!
-    username = 'TefoKeletile'  # <-- CHANGE THIS to your desired username
-    email = 'tkeletile@gmail.com'     # <-- CHANGE THIS to your email
-    password = 'Admin123!'      # <-- CHANGE THIS to a secure password
+    username = 'TefoAdmin'  # <-- CHANGED to a different username
+    email = 'tkeletile@gmail.com'     # <-- Your email
+    password = 'Admin123!'      # <-- Your password
     
     # Create the superuser
     user = User.objects.create_superuser(username, email, password)
