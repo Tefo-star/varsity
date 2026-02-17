@@ -11,12 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-j=0lzhn=psi%7d&t+8$3s43u0r2j7u3ds$()z@bfa@on(*si+!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-DEBUG = True  # Temporarily enabled to see the error
+DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', 'varsity-lygz.onrender.com']
+# Dynamic host detection
+def get_hosts():
+    return ['localhost', '127.0.0.1', '.onrender.com', 'varsity-lygz.onrender.com']
 
-# CSRF Trusted Origins - Add your domain here
+ALLOWED_HOSTS = get_hosts()
+
+# CSRF Trusted Origins - Dynamic based on request
 CSRF_TRUSTED_ORIGINS = [
     'https://varsity-lygz.onrender.com',
     'https://*.onrender.com',
@@ -26,21 +29,38 @@ if DEBUG:
     CSRF_TRUSTED_ORIGINS += [
         'http://localhost:8000',
         'http://127.0.0.1:8000',
+        'http://localhost:8000',
     ]
 
-# Session and Cookie Settings for Render
-SESSION_COOKIE_DOMAIN = '.onrender.com'  # Note the leading dot
-SESSION_COOKIE_SECURE = True  # Since you're using HTTPS
+# ============ DYNAMIC COOKIE SETTINGS ============
+# These adapt based on where the request comes from
+
+# Detect if we're on Render or local
+IS_RENDER = os.environ.get('RENDER', False) or 'RENDER' in os.environ
+
+# Session settings that work BOTH locally and on Render
+if IS_RENDER:
+    # Render (production) settings
+    SESSION_COOKIE_DOMAIN = '.onrender.com'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = 'Lax'
+else:
+    # Local development settings
+    SESSION_COOKIE_DOMAIN = None  # Important! Let browser handle it
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Common cookie settings
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_AGE = 31449600  # 1 year
 
-CSRF_COOKIE_SECURE = True
-CSRF_COOKIE_HTTPONLY = False  # Must be False for admin to work
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_AGE = 31449600  # 1 year in seconds
-
-# Ensure session engine uses database (default)
+# Ensure session engine uses database
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # Application definition
@@ -146,14 +166,11 @@ import cloudinary
 import cloudinary.uploader
 import cloudinary.api
 
-# This automatically parses the CLOUDINARY_URL from environment variables
 cloudinary.config(secure=True)
 
-# Media files - Using Cloudinary for storage
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Set Cloudinary as the default storage for media files
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # Authentication settings
