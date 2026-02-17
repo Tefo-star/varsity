@@ -12,6 +12,7 @@ class University(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        app_label = 'resources'  # ADDED - Explicitly set app label
         ordering = ['name']
     
     def __str__(self):
@@ -33,6 +34,7 @@ class Course(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        app_label = 'resources'  # ADDED - Explicitly set app label
         ordering = ['university', 'code']
         unique_together = ['university', 'code']
     
@@ -52,6 +54,7 @@ class Module(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        app_label = 'resources'  # ADDED - Explicitly set app label
         ordering = ['course', 'order', 'name']
     
     def __str__(self):
@@ -69,6 +72,9 @@ class ResourceType(models.Model):
     """Types: Test, Quiz, Exam, Lab, Notes, etc."""
     name = models.CharField(max_length=50)
     icon = models.CharField(max_length=50, default='fa-file-pdf')
+    
+    class Meta:
+        app_label = 'resources'  # ADDED - Explicitly set app label
     
     def __str__(self):
         return self.name
@@ -100,6 +106,7 @@ class Resource(models.Model):
     downloads = models.IntegerField(default=0)
     
     class Meta:
+        app_label = 'resources'  # ADDED - Explicitly set app label
         ordering = ['-year', 'course', 'resource_type']
         indexes = [
             models.Index(fields=['university', 'course', 'year']),
@@ -125,3 +132,6 @@ class ResourceDownload(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     downloaded_at = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
+    
+    class Meta:
+        app_label = 'resources'  # ADDED - Explicitly set app label
