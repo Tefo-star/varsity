@@ -2,19 +2,48 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Regular views
+    # Main feed
     path('', views.home, name='home'),
+    path('load-more/', views.load_more_posts, name='load_more_posts'),
+    
+    # Post operations
     path('post/new/', views.create_post, name='create_post'),
     path('post/<int:post_id>/', views.post_detail, name='post_detail'),
     path('post/<int:post_id>/delete/', views.delete_post, name='delete_post'),
-    path('post/<int:post_id>/react/', views.react_to_post, name='react_to_post'),
-    path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
-    path('comment/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
-    path('api/online-count/', views.online_users_api, name='online_users_api'),
-    path('list-users/', views.list_users, name='list_users'),
+    path('post/<int:post_id>/edit/', views.edit_post, name='edit_post'),
     
-    # AJAX endpoints (no page reload)
+    # Profile
+    path('profile/', views.profile, name='profile'),
+    path('profile/<str:username>/', views.profile, name='user_profile'),
+    path('profile/<str:username>/follow/', views.toggle_follow, name='toggle_follow'),
+    
+    # Notifications - ADD THESE LINES
+    path('notifications/', views.notifications, name='notifications'),
+    path('notifications/count/', views.get_notification_count, name='notification_count'),
+    
+    # Saved posts
+    path('saved/', views.saved_posts, name='saved_posts'),
+    
+    # Search
+    path('search/', views.search, name='search'),
+    
+    # API endpoints
+    path('api/online-count/', views.online_users_api, name='online_users_api'),
+    
+    # AJAX endpoints
     path('ajax/react/<int:post_id>/', views.ajax_react_to_post, name='ajax_react_to_post'),
     path('ajax/comment/<int:post_id>/', views.ajax_add_comment, name='ajax_add_comment'),
+    path('ajax/comment/<int:comment_id>/delete/', views.ajax_delete_comment, name='ajax_delete_comment'),
     path('ajax/comment/<int:comment_id>/react/', views.ajax_react_to_comment, name='ajax_react_to_comment'),
+    path('ajax/post/<int:post_id>/save/', views.ajax_save_post, name='ajax_save_post'),
+    path('ajax/post/<int:post_id>/share/', views.ajax_share_post, name='ajax_share_post'),
+    path('ajax/post/<int:post_id>/report/', views.ajax_report_post, name='ajax_report_post'),
+    
+    # Legacy endpoints
+    path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
+    path('comment/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
+    
+    # Admin utilities
+    path('list-users/', views.list_users, name='list_users'),
+    path('test/', views.test_view, name='test'),
 ]
