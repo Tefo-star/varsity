@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Varsity Connect - Botswana</title>
     
     {# Google Analytics - This adds the tracking code #}
@@ -11,10 +11,11 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             font-family: 'Poppins', sans-serif;
+            box-sizing: border-box;
         }
         
         :root {
@@ -25,34 +26,45 @@
             --neon-pink: #ff0066;
             --glass-bg: rgba(255, 255, 255, 0.95);
             --card-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            --success-green: #00b09b;
+            --danger-red: #ff416c;
+            --warning-yellow: #ffd700;
         }
 
         body {
             background: var(--primary-gradient);
             min-height: 100vh;
             padding-bottom: 70px; /* Space for mobile bottom nav */
+            margin: 0;
+            overflow-x: hidden;
         }
 
+        /* ==================== NAVBAR STYLES ==================== */
         .navbar-custom {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            padding: 1.2rem 0;
+            padding: 0.8rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
         }
 
         .navbar-brand {
             font-weight: 800;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             background: var(--secondary-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            white-space: nowrap;
         }
 
         .nav-link {
-            font-weight: 600;
+            font-weight: 500;
             color: #2d3436 !important;
-            margin: 0 15px;
+            margin: 0 10px;
             transition: all 0.3s;
+            position: relative;
         }
 
         .nav-link:hover {
@@ -60,14 +72,21 @@
             transform: translateY(-2px);
         }
 
+        .nav-link.active {
+            color: var(--neon-purple) !important;
+            font-weight: 600;
+        }
+
         .btn-create {
             background: var(--secondary-gradient);
             color: white;
             border: none;
-            padding: 10px 25px;
+            padding: 8px 20px;
             border-radius: 50px;
             font-weight: 600;
             transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn-create:hover {
@@ -76,14 +95,20 @@
             color: white;
         }
 
+        .btn-create:active {
+            transform: translateY(0);
+        }
+
+        /* ==================== GLASS CARD ==================== */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: 30px;
             box-shadow: var(--card-shadow);
-            padding: 30px;
-            margin-bottom: 30px;
+            padding: 25px;
+            margin-bottom: 25px;
             transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
         .glass-card:hover {
@@ -91,6 +116,11 @@
             box-shadow: 0 30px 50px rgba(0,0,0,0.2);
         }
 
+        .glass-card:active {
+            transform: translateY(0);
+        }
+
+        /* ==================== UNIVERSITY BADGES ==================== */
         .uni-badge {
             display: inline-flex;
             align-items: center;
@@ -98,8 +128,9 @@
             border-radius: 50px;
             font-weight: 600;
             font-size: 0.8rem;
-            margin-left: 10px;
+            margin: 0 5px 5px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            white-space: nowrap;
         }
 
         .uni-ub { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; }
@@ -110,13 +141,16 @@
         .uni-biust { background: linear-gradient(135deg, #004e92, #000428); color: white; }
         .uni-visitor { background: linear-gradient(135deg, #757f9a, #d7dde8); color: #2d3436; }
 
+        /* ==================== ONLINE COUNTER ==================== */
         .online-counter {
             background: linear-gradient(135deg, #00b09b, #96c93d);
             color: white;
             border-radius: 50px;
-            padding: 5px 20px;
+            padding: 5px 15px;
             font-weight: 600;
             animation: pulse 2s infinite;
+            display: inline-block;
+            font-size: 0.9rem;
         }
 
         @keyframes pulse {
@@ -125,12 +159,13 @@
             100% { box-shadow: 0 0 0 0 rgba(0,176,155,0); }
         }
 
+        /* ==================== PAGE TITLE ==================== */
         .page-title {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: 800;
             color: white;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             text-align: center;
         }
 
@@ -140,18 +175,22 @@
             -webkit-text-fill-color: transparent;
         }
 
+        /* ==================== REACTION BUTTONS ==================== */
         .reaction-btn {
             background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
             border: none;
             padding: 8px 16px;
             border-radius: 50px;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: all 0.2s;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 5px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: #2d3436;
+            text-decoration: none;
+            font-size: 0.95rem;
         }
 
         .reaction-btn:hover {
@@ -159,11 +198,20 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
 
-        /* Tefo's Celebration Banner */
+        .reaction-btn:active {
+            transform: scale(0.95);
+        }
+
+        .reaction-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        /* ==================== CELEBRATION BANNER ==================== */
         .announcement-banner {
             background: linear-gradient(135deg, #667eea, #764ba2, #ff6b6b);
             color: white;
-            padding: 10px 0;
+            padding: 8px 0;
             overflow: hidden;
             border-radius: 0;
             margin: 0;
@@ -176,7 +224,7 @@
         .moving-text {
             white-space: nowrap;
             overflow: hidden;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
@@ -205,13 +253,13 @@
         .test-badge {
             background: #ffd700;
             color: #333;
-            padding: 5px 15px;
+            padding: 3px 10px;
             border-radius: 30px;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
             position: absolute;
             top: 5px;
-            right: 20px;
+            right: 10px;
             transform: rotate(3deg);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             z-index: 1001;
@@ -219,11 +267,11 @@
         
         .creator-credit {
             text-align: center;
-            font-size: 14px;
+            font-size: 12px;
             color: #fff;
             opacity: 0.9;
             background: rgba(0,0,0,0.2);
-            padding: 5px 0;
+            padding: 3px 0;
         }
         
         .creator-credit a {
@@ -236,6 +284,21 @@
             text-decoration: underline;
         }
 
+        /* ==================== NOTIFICATION BADGE ==================== */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-red);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
+            min-width: 18px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
         /* ==================== MOBILE BOTTOM NAVIGATION ==================== */
         .mobile-bottom-nav {
             position: fixed;
@@ -246,9 +309,10 @@
             backdrop-filter: blur(10px);
             display: flex;
             justify-content: space-around;
-            padding: 8px 0;
+            padding: 8px 0 12px;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-            z-index: 1000;
+            z-index: 1050;
+            border-top: 1px solid rgba(255,255,255,0.2);
         }
 
         .mobile-nav-item {
@@ -257,12 +321,14 @@
             align-items: center;
             color: #2d3436;
             text-decoration: none;
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.3s;
+            flex: 1;
+            position: relative;
         }
 
         .mobile-nav-item i {
-            font-size: 20px;
+            font-size: 22px;
             margin-bottom: 2px;
         }
 
@@ -271,10 +337,54 @@
             color: var(--neon-purple);
         }
 
-        /* ==================== ENHANCED MOBILE RESPONSIVENESS ==================== */
+        .mobile-nav-item.active i {
+            transform: scale(1.1);
+        }
+
+        .mobile-notification-badge {
+            position: absolute;
+            top: -2px;
+            right: 25%;
+            background: var(--danger-red);
+            color: white;
+            border-radius: 50%;
+            padding: 2px 5px;
+            font-size: 9px;
+            min-width: 16px;
+            text-align: center;
+        }
+
+        /* ==================== PROFILE AVATAR ==================== */
+        .profile-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* ==================== VERIFIED BADGE ==================== */
+        .verified-badge {
+            color: #1DA1F2;
+            font-size: 0.9rem;
+            margin-left: 5px;
+        }
+
+        /* ==================== RESPONSIVE FIXES ==================== */
         @media (max-width: 768px) {
             .navbar-custom {
-                padding: 0.8rem 0;
+                padding: 0.5rem 0;
             }
             
             .navbar-brand {
@@ -282,50 +392,36 @@
             }
             
             /* Hide desktop nav items on mobile (they'll be in bottom nav) */
-            .navbar-nav .nav-item:not(.online-counter) {
+            .navbar-nav .nav-item:not(.online-counter):not(.notification-item) {
                 display: none;
             }
             
-            /* Keep online counter in top nav */
-            .navbar-nav .online-counter {
+            /* Keep online counter and notification in top nav */
+            .navbar-nav .online-counter,
+            .navbar-nav .notification-item {
                 display: block;
-                margin-right: 0 !important;
             }
             
             .btn-create, .online-counter {
-                width: 100%;
-                text-align: center;
-                margin: 5px 0 !important;
+                padding: 5px 12px !important;
+                font-size: 0.85rem !important;
             }
             
             .online-counter {
-                display: block;
+                display: inline-block;
+                margin-right: 5px !important;
             }
             
             .uni-badge {
                 display: inline-block;
-                margin: 5px 0;
+                margin: 3px 3px 3px 0 !important;
+                font-size: 0.7rem !important;
+                padding: 3px 10px !important;
             }
             
             .navbar-collapse {
                 max-height: 80vh;
                 overflow-y: auto;
-            }
-            
-            /* Fix for the announcement banner on mobile */
-            .moving-text {
-                font-size: 14px !important;
-            }
-            
-            .test-badge {
-                font-size: 10px !important;
-                padding: 3px 10px !important;
-                top: 2px !important;
-                right: 5px !important;
-            }
-            
-            .creator-credit {
-                font-size: 11px !important;
             }
             
             /* Make cards more mobile-friendly */
@@ -337,7 +433,7 @@
             
             .page-title {
                 font-size: 1.8rem !important;
-                margin-bottom: 20px !important;
+                margin-bottom: 15px !important;
             }
             
             h1, h2, h3 {
@@ -351,7 +447,7 @@
             /* Reaction buttons on mobile */
             .reaction-btn {
                 padding: 5px 10px !important;
-                font-size: 0.9rem !important;
+                font-size: 0.85rem !important;
             }
             
             /* Fix post headers on mobile */
@@ -359,22 +455,19 @@
                 flex-wrap: wrap;
             }
             
-            .uni-badge {
-                margin: 5px 5px 5px 0 !important;
-                font-size: 0.7rem !important;
-            }
-            
             /* Ensure the online counter fits */
             .online-counter {
-                padding: 5px 12px !important;
-                font-size: 0.9rem !important;
                 width: auto !important;
+                margin: 0 !important;
             }
             
             /* Better touch targets */
             .nav-link, .btn-create {
-                padding: 8px 15px !important;
+                padding: 6px 12px !important;
                 font-size: 0.9rem !important;
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
             }
             
             /* Make clickable areas obvious */
@@ -386,6 +479,10 @@
             .glass-card:active {
                 transform: scale(0.98);
             }
+
+            .mobile-bottom-nav {
+                display: flex !important;
+            }
         }
 
         @media (min-width: 769px) {
@@ -395,6 +492,65 @@
             body {
                 padding-bottom: 0;
             }
+        }
+
+        /* ==================== UTILITY CLASSES ==================== */
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .text-gradient {
+            background: var(--secondary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .bg-gradient-primary {
+            background: var(--primary-gradient);
+        }
+
+        .bg-gradient-secondary {
+            background: var(--secondary-gradient);
+        }
+
+        /* ==================== ANIMATIONS ==================== */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        .animate-slide-up {
+            animation: slideInUp 0.5s ease;
+        }
+
+        .animate-slide-left {
+            animation: slideInLeft 0.5s ease;
         }
     </style>
 </head>
@@ -413,11 +569,12 @@
                 </span>
             </div>
             <div class="creator-credit">
-                👨‍💻 Built with ❤️ by <a href="#" target="_blank">Tefo Keletile</a> | 🚀 Botswana's Varsity Connect
+                👨‍💻 Built with ❤️ by <a href="{% url 'profile' %}" target="_blank">Tefo Keletile</a> | 🚀 Botswana's Varsity Connect
             </div>
         </div>
     </div>
 
+    <!-- Main Navigation -->
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container">
             <a class="navbar-brand" href="{% url 'home' %}">
@@ -429,30 +586,44 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     
-                    <!-- ==================== RESOURCES TAB ==================== -->
+                    <!-- Resources Tab -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'resources_dashboard' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'resources_dashboard' %}active{% endif %}" 
+                           href="{% url 'resources_dashboard' %}">
                             <i class="fas fa-book-open me-1"></i>Resources
                         </a>
                     </li>
                     
                     {% if user.is_authenticated %}
-                        <li class="nav-item me-3">
+                        <!-- Online Counter -->
+                        <li class="nav-item me-2">
                             <span class="online-counter" id="online-counter">
-                                <i class="fas fa-circle" style="color: #4CAF50; font-size: 10px;"></i>
+                                <i class="fas fa-circle" style="color: #4CAF50; font-size: 8px;"></i>
                                 <span id="online-count">0</span> online
                             </span>
                         </li>
+                        
+                        <!-- Notifications -->
+                        <li class="nav-item position-relative notification-item me-2">
+                            <a class="nav-link" href="{% url 'notifications' %}" id="notification-icon">
+                                <i class="fas fa-bell"></i>
+                                <span id="notification-badge" class="notification-badge" style="display: none;">0</span>
+                            </a>
+                        </li>
+                        
+                        <!-- Create Post -->
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'create_post' %}">
                                 <i class="fas fa-plus-circle me-1"></i>Create
                             </a>
                         </li>
+                        
+                        <!-- Profile -->
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'profile' %}">
                                 <i class="fas fa-user-astronaut me-1"></i>{{ user.username }}
                                 {% if user.activity.university %}
-                                    <span class="uni-badge uni-{{ user.activity.university }}">
+                                    <span class="uni-badge uni-{{ user.activity.university }} d-none d-lg-inline-flex">
                                         <i class="fas fa-graduation-cap me-1"></i>
                                         {% if user.activity.university == 'ub' %}UB{% endif %}
                                         {% if user.activity.university == 'buan' %}BUAN{% endif %}
@@ -465,19 +636,26 @@
                                 {% endif %}
                             </a>
                         </li>
+                        
+                        <!-- Log Out -->
                         <li class="nav-item">
                             <a class="btn-create ms-2" href="{% url 'logout' %}">
                                 <i class="fas fa-sign-out-alt me-1"></i>Log Out
                             </a>
                         </li>
                     {% else %}
+                        <!-- Login -->
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" 
+                               href="{% url 'login' %}">
                                 <i class="fas fa-sign-in-alt me-1"></i>Login
                             </a>
                         </li>
+                        
+                        <!-- Register -->
                         <li class="nav-item">
-                            <a class="btn-create" href="{% url 'register' %}">
+                            <a class="btn-create {% if request.resolver_match.url_name == 'register' %}active{% endif %}" 
+                               href="{% url 'register' %}">
                                 <i class="fas fa-user-astronaut me-1"></i>Join the Crew
                             </a>
                         </li>
@@ -487,45 +665,58 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <!-- Main Content Container -->
+    <div class="container mt-3 mt-md-4">
+        <!-- Messages -->
         {% if messages %}
             {% for message in messages %}
-                <div class="glass-card" style="padding: 15px; margin-bottom: 20px;">
-                    <i class="fas fa-rocket me-2"></i>{{ message }}
+                <div class="glass-card animate-slide-up" style="padding: 15px; margin-bottom: 20px; {% if message.tags == 'success' %}background: linear-gradient(135deg, #00b09b, #96c93d); color: white;{% endif %}">
+                    <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-rocket{% endif %} me-2"></i>{{ message }}
                 </div>
             {% endfor %}
         {% endif %}
 
+        <!-- Page Content -->
         {% block content %}{% endblock %}
     </div>
 
-    <!-- ==================== MOBILE BOTTOM NAVIGATION ==================== -->
+    <!-- Mobile Bottom Navigation (Visible only on mobile) -->
     <div class="mobile-bottom-nav d-md-none">
         <a href="{% url 'home' %}" class="mobile-nav-item {% if request.path == '/' %}active{% endif %}">
             <i class="fas fa-home"></i>
             <span>Home</span>
         </a>
+        
         <a href="{% url 'resources_dashboard' %}" class="mobile-nav-item {% if 'resources' in request.path %}active{% endif %}">
             <i class="fas fa-book-open"></i>
             <span>Resources</span>
         </a>
+        
         {% if user.is_authenticated %}
             <a href="{% url 'create_post' %}" class="mobile-nav-item {% if 'create' in request.path %}active{% endif %}">
                 <i class="fas fa-plus-circle"></i>
                 <span>Create</span>
             </a>
+            
+            <a href="{% url 'notifications' %}" class="mobile-nav-item position-relative {% if 'notifications' in request.path %}active{% endif %}">
+                <i class="fas fa-bell"></i>
+                <span>Alerts</span>
+                <span id="mobile-notification-badge" class="mobile-notification-badge" style="display: none;">0</span>
+            </a>
+            
             <a href="{% url 'profile' %}" class="mobile-nav-item {% if 'profile' in request.path %}active{% endif %}">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
         {% else %}
-            <a href="{% url 'login' %}" class="mobile-nav-item">
+            <a href="{% url 'login' %}" class="mobile-nav-item {% if 'login' in request.path %}active{% endif %}">
                 <i class="fas fa-sign-in-alt"></i>
                 <span>Login</span>
             </a>
         {% endif %}
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Optional Confetti Effect (uncomment if you want it) -->
@@ -542,7 +733,7 @@
     </script> -->
 
     <script>
-        // FIXED: Only run WebSocket on pages with online counter - NO PAGE RELOADS
+        // ==================== WEBSOCKET FOR ONLINE COUNTER ====================
         document.addEventListener('DOMContentLoaded', function() {
             const onlineCounter = document.getElementById('online-counter');
             const onlineCount = document.getElementById('online-count');
@@ -584,8 +775,6 @@
             
             onlineSocket.onclose = function(e) {
                 console.log('🔌 WebSocket closed - will NOT reload page');
-                // REMOVED THE location.reload() THAT WAS CAUSING THE PROBLEM
-                // Just change color to show disconnected
                 onlineCounter.style.backgroundColor = '#6c757d';
                 onlineCounter.style.animation = 'none';
             };
@@ -598,6 +787,80 @@
                 }
             }, 30000);
         });
+
+        // ==================== NOTIFICATION CHECKER ====================
+        function checkNotifications() {
+            fetch('/notifications/count/')
+                .then(response => response.json())
+                .then(data => {
+                    const desktopBadge = document.getElementById('notification-badge');
+                    const mobileBadge = document.getElementById('mobile-notification-badge');
+                    
+                    if (data.count > 0) {
+                        if (desktopBadge) {
+                            desktopBadge.textContent = data.count > 9 ? '9+' : data.count;
+                            desktopBadge.style.display = 'inline';
+                        }
+                        if (mobileBadge) {
+                            mobileBadge.textContent = data.count > 9 ? '9+' : data.count;
+                            mobileBadge.style.display = 'inline';
+                        }
+                    } else {
+                        if (desktopBadge) desktopBadge.style.display = 'none';
+                        if (mobileBadge) mobileBadge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error checking notifications:', error));
+        }
+
+        // Check notifications if user is authenticated
+        {% if user.is_authenticated %}
+            // Check on page load
+            document.addEventListener('DOMContentLoaded', checkNotifications);
+            
+            // Check every 30 seconds
+            setInterval(checkNotifications, 30000);
+        {% endif %}
+
+        // ==================== ACTIVE LINK HIGHLIGHTING ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            
+            // Highlight desktop nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && currentPath.startsWith(href) && href !== '/') {
+                    link.classList.add('active');
+                } else if (href === '/' && currentPath === '/') {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Highlight mobile nav links
+            document.querySelectorAll('.mobile-nav-item').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && currentPath.startsWith(href) && href !== '/') {
+                    link.classList.add('active');
+                } else if (href === '/' && currentPath === '/') {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // ==================== TOOLTIP INITIALIZATION ====================
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // ==================== POPOVER INITIALIZATION ====================
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl)
+        });
+
+        // ==================== DARK MODE TOGGLE (Optional) ====================
+        // Add dark mode functionality if needed
     </script>
 </body>
 </html>
