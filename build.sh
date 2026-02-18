@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e  # Stop on any error
+set -e
 
 echo "========================================"
 echo "🚀 Starting build process..."
@@ -12,7 +12,7 @@ echo "🔍 Checking environment variables..."
 echo "DATABASE_URL is set: ${#DATABASE_URL}"
 
 echo "🗄️  Running database migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --noinput --run-syncdb
 
 echo "📂 Collecting static files..."
 python manage.py collectstatic --noinput
