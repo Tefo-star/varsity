@@ -11,7 +11,7 @@
     </a>
 </div>
 
-<!-- ==================== RESOURCES BY MODULE AND TYPE ==================== -->
+<!-- RESOURCES BY MODULE, THEN BY TYPE -->
 {% for module, resources in resources_by_module.items %}
     <div class="glass-card mb-4">
         <h4 class="mb-3">
@@ -19,38 +19,44 @@
             {{ module.name }}
         </h4>
         
-        <!-- Group by resource type -->
-        <div class="row">
-            {% regroup resources by resource_type.name as type_list %}
-            {% for resource_type in type_list %}
-                <div class="col-12 mb-3">
-                    <h5 class="mb-2">{{ resource_type.grouper }}s</h5>
-                    <div class="row">
-                        {% for resource in resource_type.list %}
-                            <div class="col-md-6 mb-2">
-                                <div class="d-flex align-items-center p-2" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
-                                    <i class="fas fa-file-pdf fa-2x me-3" style="color: #ff416c;"></i>
-                                    <div class="flex-grow-1">
-                                        <strong>{{ resource.title }}</strong><br>
-                                        <small class="text-muted">
-                                            <i class="fas fa-download me-1"></i>{{ resource.downloads }} downloads
-                                        </small>
-                                    </div>
-                                    <div>
-                                        <a href="{% url 'view_pdf' resource.id %}" class="btn-create btn-sm" target="_blank">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{% url 'download_resource' resource.id %}" class="btn-create btn-sm">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                    </div>
+        <!-- Group by resource type within module -->
+        {% regroup resources by resource_type.name as type_list %}
+        {% for resource_type in type_list %}
+            <div class="mb-3">
+                <h5 class="mb-2" style="color: var(--neon-purple);">
+                    <i class="fas {% if resource_type.grouper == 'Test' %}fa-file-alt{% elif resource_type.grouper == 'Quiz' %}fa-question-circle{% elif resource_type.grouper == 'Exam' %}fa-file-pdf{% elif resource_type.grouper == 'Lab' %}fa-flask{% else %}fa-file{% endif %} me-2"></i>
+                    {{ resource_type.grouper }}s ({{ academic_year }})
+                </h5>
+                
+                <div class="row">
+                    {% for resource in resource_type.list %}
+                        <div class="col-md-6 mb-2">
+                            <div class="d-flex align-items-center p-2" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
+                                <i class="fas fa-file-pdf fa-2x me-3" style="color: #ff416c;"></i>
+                                <div class="flex-grow-1">
+                                    <strong>{{ resource.title }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-download me-1"></i>{{ resource.downloads }} downloads
+                                        {% if resource.semester != 0 %}
+                                            | Semester {{ resource.semester }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="{% url 'view_pdf' resource.id %}" class="btn-create btn-sm" target="_blank">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'download_resource' resource.id %}" class="btn-create btn-sm">
+                                        <i class="fas fa-download"></i>
+                                    </a>
                                 </div>
                             </div>
-                        {% endfor %}
-                    </div>
+                        </div>
+                    {% endfor %}
                 </div>
-            {% endfor %}
-        </div>
+            </div>
+        {% endfor %}
     </div>
 {% empty %}
     <div class="glass-card text-center py-5">
