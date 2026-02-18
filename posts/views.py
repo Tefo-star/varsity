@@ -9,7 +9,10 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
 from django.conf import settings
-from .models import Post, Comment, Reaction
+from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
+import json
+from .models import Post, Comment, Reaction, CommentReaction
 from .forms import PostForm, CommentForm
 
 def home(request):
@@ -57,7 +60,7 @@ def create_post(request):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.all()
+    comments = post.comments.filter(parent=None)  # Only top-level comments
     
     if request.method == 'POST' and request.user.is_authenticated:
         comment_form = CommentForm(request.POST)
@@ -144,6 +147,167 @@ def online_users_api(request):
 
 def test_view(request):
     return render(request, 'test.html')
+
+# ==================== COMMENT REPLY (Regular) ====================
+@login_required
+def reply_to_comment(request, comment_id):
+    parent_comment = get_object_or_404(Comment, id=comment_id)
+    
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        if content:
+            Comment.objects.create(
+                post=parent_comment.post,
+                author=request.user,
+                parent=parent_comment,
+                content=content
+            )
+            messages.success(request, 'Reply added!')
+    
+    return redirect('post_detail', post_id=parent_comment.post.id)
+
+# ==================== REACT TO COMMENT (Regular) ====================
+@login_required
+@require_POST
+def react_to_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    reaction_type = request.POST.get('reaction_type')
+    
+    existing_reaction = CommentReaction.objects.filter(
+        comment=comment,
+        user=request.user
+    ).first()
+    
+    if existing_reaction:
+        if existing_reaction.reaction_type == reaction_type:
+            existing_reaction.delete()
+        else:
+            existing_reaction.reaction_type = reaction_type
+            existing_reaction.save()
+    else:
+        CommentReaction.objects.create(
+            comment=comment,
+            user=request.user,
+            reaction_type=reaction_type
+        )
+    
+    return redirect('post_detail', post_id=comment.post.id)
+
+# ==================== AJAX REACTION (NO PAGE RELOAD) ====================
+@login_required
+@require_POST
+def ajax_react_to_post(request, post_id):
+    """React to a post without page reload"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        data = json.loads(request.body)
+        reaction_type = data.get('reaction_type')
+        
+        existing_reaction = Reaction.objects.filter(
+            post=post,
+            user=request.user
+        ).first()
+        
+        if existing_reaction:
+            if existing_reaction.reaction_type == reaction_type:
+                existing_reaction.delete()
+                action = 'removed'
+            else:
+                existing_reaction.reaction_type = reaction_type
+                existing_reaction.save()
+                action = 'updated'
+        else:
+            Reaction.objects.create(
+                post=post,
+                user=request.user,
+                reaction_type=reaction_type
+            )
+            action = 'added'
+        
+        # Get updated counts
+        counts = post.get_reaction_counts()
+        
+        return JsonResponse({
+            'success': True,
+            'action': action,
+            'counts': counts
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==================== AJAX ADD COMMENT ====================
+@login_required
+@require_POST
+def ajax_add_comment(request, post_id):
+    """Add comment without page reload"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        data = json.loads(request.body)
+        content = data.get('content')
+        parent_id = data.get('parent_id')  # For replies
+        
+        if not content:
+            return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
+        
+        comment = Comment.objects.create(
+            post=post,
+            author=request.user,
+            content=content,
+            parent_id=parent_id
+        )
+        
+        # Return the new comment HTML
+        comment_html = render_to_string('posts/_comment.html', {
+            'comment': comment,
+            'user': request.user
+        }, request=request)
+        
+        return JsonResponse({
+            'success': True,
+            'comment_html': comment_html,
+            'comment_id': comment.id,
+            'parent_id': parent_id
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==================== AJAX REACT TO COMMENT ====================
+@login_required
+@require_POST
+def ajax_react_to_comment(request, comment_id):
+    """React to a comment without page reload"""
+    try:
+        comment = get_object_or_404(Comment, id=comment_id)
+        data = json.loads(request.body)
+        reaction_type = data.get('reaction_type')
+        
+        existing_reaction = CommentReaction.objects.filter(
+            comment=comment,
+            user=request.user
+        ).first()
+        
+        if existing_reaction:
+            if existing_reaction.reaction_type == reaction_type:
+                existing_reaction.delete()
+            else:
+                existing_reaction.reaction_type = reaction_type
+                existing_reaction.save()
+        else:
+            CommentReaction.objects.create(
+                comment=comment,
+                user=request.user,
+                reaction_type=reaction_type
+            )
+        
+        # Get updated reaction count
+        reaction_count = comment.commentreaction_set.count()
+        
+        return JsonResponse({
+            'success': True,
+            'reaction_count': reaction_count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 # ==================== LIST USERS (Optional - Keep for debugging) ====================
 def list_users(request):
