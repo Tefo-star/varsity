@@ -309,12 +309,16 @@ def toggle_follow(request, username):
 # ==================== NOTIFICATIONS ====================
 @login_required
 def notifications(request):
+    # First, mark unread notifications as read (without slicing)
+    Notification.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).update(is_read=True)
+    
+    # Then get the sliced queryset for display
     notifications_list = Notification.objects.filter(
         recipient=request.user
     ).select_related('sender', 'post', 'comment').order_by('-created_at')[:50]
-    
-    # Mark as read
-    notifications_list.filter(is_read=False).update(is_read=True)
     
     context = {
         'notifications': notifications_list
