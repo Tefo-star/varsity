@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-title">
+    <span>{{ course.code }} - {{ year }}</span>
+</div>
+
+<div class="mb-4">
+    <a href="{% url 'course_detail' university.code course.code %}" class="btn-create" style="background: #6c757d;">
+        <i class="fas fa-arrow-left me-2"></i>Back to {{ course.code }}
+    </a>
+</div>
+
+<!-- Group resources by module -->
+{% for module in modules %}
+    {% with module_resources=resources|dictsortreversed:"module_id" %}
+        {% if module_resources %}
+            <h4 class="mb-3">{{ module.name }}</h4>
+            <div class="row mb-4">
+                {% for resource in resources %}
+                    {% if resource.module == module %}
+                        <div class="col-md-6 mb-3">
+                            <div class="glass-card">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-pdf fa-3x me-3" style="color: #ff416c;"></i>
+                                    <div class="flex-grow-1">
+                                        <h5>{{ resource.title }}</h5>
+                                        <p class="text-muted small mb-1">
+                                            <i class="fas fa-tag me-1"></i>{{ resource.resource_type.name }} |
+                                            <i class="fas fa-download me-1"></i>{{ resource.downloads }} downloads
+                                        </p>
+                                    </div>
+                                    <div class="btn-group">
+                                        <a href="{% url 'view_pdf' resource.id %}" class="btn-create" target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'download_resource' resource.id %}" class="btn-create" style="margin-left: 5px;">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+{% endfor %}
+{% endblock %}
