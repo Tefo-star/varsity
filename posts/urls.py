@@ -17,7 +17,7 @@ urlpatterns = [
     path('profile/<str:username>/', views.profile, name='user_profile'),
     path('profile/<str:username>/follow/', views.toggle_follow, name='toggle_follow'),
     
-    # Notifications - ADD THESE LINES
+    # Notifications
     path('notifications/', views.notifications, name='notifications'),
     path('notifications/count/', views.get_notification_count, name='notification_count'),
     
@@ -42,6 +42,9 @@ urlpatterns = [
     # Legacy endpoints
     path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
     path('comment/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
+    
+    # ==================== MIGRATION HELPER ====================
+    path('run-migrations/', views.run_posts_migrations, name='run_posts_migrations'),
     
     # Admin utilities
     path('list-users/', views.list_users, name='list_users'),
