@@ -1,150 +1,277 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ post.title }} - Varsity{% endblock %}
+
 {% block content %}
-<div class="row">
-    <div class="col-md-8 mx-auto">
-        <div class="glass-card">
-            <div class="d-flex justify-content-between align-items-start mb-4">
-                <div>
-                    <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 10px;">{{ post.title }}</h1>
-                    <div class="d-flex align-items-center flex-wrap gap-2">
-                        <strong style="font-size: 1rem;">{{ post.author.username }}</strong>
-                        {% if post.author.activity.university %}
-                            <span class="uni-badge uni-{{ post.author.activity.university }}">
-                                {% if post.author.activity.university == 'ub' %}UB{% endif %}
-                                {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
-                                {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
-                                {% if post.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
-                                {% if post.author.activity.university == 'baisago' %}ISAGO{% endif %}
-                                {% if post.author.activity.university == 'biust' %}BIUST{% endif %}
-                                {% if post.author.activity.university == 'visitor' %}🌟 VISITOR{% endif %}
-                            </span>
-                        {% endif %}
-                        <span class="text-muted" style="font-size: 0.9rem;">
-                            {{ post.created_at|timesince }} ago
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Back button -->
+            <a href="{% url 'home' %}" class="btn btn-outline-primary mb-4">
+                <i class="fas fa-arrow-left me-2"></i>Back to Feed
+            </a>
+            
+            <!-- Main Post Card -->
+            <div class="glass-card post-card" data-post-id="{{ post.id }}" data-timestamp="{{ post.created_at|date:'c' }}">
+                <!-- Post Header -->
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center">
+                        <a href="{% url 'user_profile' post.author.username %}" style="text-decoration: none;">
+                            <div class="profile-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                {% if post.author.activity.profile_picture %}
+                                    <img src="{{ post.author.activity.profile_picture.url }}" alt="{{ post.author.username }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                {% else %}
+                                    <span style="color: white; font-weight: 700; font-size: 1.2rem;">{{ post.author.username|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                        <div>
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                <a href="{% url 'user_profile' post.author.username %}" style="text-decoration: none; color: inherit;">
+                                    <strong style="font-size: 1.1rem;">{{ post.author.username }}</strong>
+                                </a>
+                                {% if post.author.activity.university %}
+                                    <span class="uni-badge uni-{{ post.author.activity.university }}">
+                                        <i class="fas fa-graduation-cap me-1"></i>
+                                        {% if post.author.activity.university == 'ub' %}UB{% endif %}
+                                        {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
+                                        {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
+                                        {% if post.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
+                                        {% if post.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                                        {% if post.author.activity.university == 'biust' %}BIUST{% endif %}
+                                        {% if post.author.activity.university == 'visitor' %}🌟 VISITOR{% endif %}
+                                    </span>
+                                {% endif %}
+                                {% if post.author.activity.is_verified %}
+                                    <span class="verified-badge" style="color: #1DA1F2;">
+                                        <i class="fas fa-check-circle"></i>
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-muted" style="font-size: 0.9rem;">
+                                <span class="post-time" title="{{ post.created_at|date:'F j, Y, g:i a' }}">{{ post.created_at|timesince }} ago</span>
+                                {% if post.is_pinned %}
+                                    <span class="ms-2"><i class="fas fa-thumbtack" style="color: var(--neon-purple);"></i> Pinned</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 8px 16px; border-radius: 50px;">
+                            {{ post.get_post_type_display }}
                         </span>
+                        
+                        <!-- Post Options Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-link" data-bs-toggle="dropdown" style="color: #666;">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user == post.author %}
+                                    <li><a class="dropdown-item" href="{% url 'edit_post' post.id %}"><i class="fas fa-edit me-2"></i>Edit</a></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'delete_post' post.id %}"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                                {% else %}
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#reportModal-{{ post.id }}"><i class="fas fa-flag me-2"></i>Report</a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="#" data-post-id="{{ post.id }}" data-action="save"><i class="fas fa-bookmark me-2"></i>Save</a></li>
+                                <li><a class="dropdown-item" href="#" data-post-id="{{ post.id }}" data-action="share"><i class="fas fa-share me-2"></i>Share</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="copyPostLink('{{ post.id }}')"><i class="fas fa-link me-2"></i>Copy link</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <span class="badge" style="background: var(--primary-gradient); color: white; padding: 8px 16px; border-radius: 50px;">
-                        {{ post.get_post_type_display }}
-                    </span>
-                    {% if user == post.author %}
-                        <a href="{% url 'delete_post' post.id %}" class="btn" style="background: #ff416c; color: white; padding: 8px 20px; border-radius: 50px; text-decoration: none; font-size: 0.9rem;">
-                            <i class="fas fa-trash me-1"></i>Delete
-                        </a>
+
+                <!-- Post Title -->
+                <h3 style="font-weight: 700; margin-bottom: 15px; font-size: 1.5rem;">{{ post.title }}</h3>
+
+                <!-- Post Content -->
+                {% if post.content %}
+                    <div style="color: #2d3436; line-height: 1.7; margin-bottom: 20px; font-size: 1rem;">
+                        {{ post.content|linebreaks }}
+                    </div>
+                {% endif %}
+
+                <!-- Post Image -->
+                {% if post.image %}
+                    <div class="text-center mb-4">
+                        <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 400px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
+                    </div>
+                {% endif %}
+
+                <!-- Post Video -->
+                {% if post.video_url %}
+                    <div class="text-center mb-4">
+                        <iframe width="100%" height="400" src="{{ post.video_url }}" frameborder="0" allowfullscreen style="border-radius: 15px;"></iframe>
+                    </div>
+                {% endif %}
+
+                <!-- Post Stats -->
+                <div class="d-flex justify-content-between mb-2 text-muted small">
+                    <div>
+                        <span class="me-3"><i class="fas fa-heart me-1" style="color: #ff416c;"></i> <span class="reactions-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span></span>
+                        <span class="me-3"><i class="fas fa-comment me-1"></i> <span class="comments-count">{{ post.comment_count }}</span></span>
+                        <span><i class="fas fa-share me-1"></i> <span class="shares-count">{{ post.share_count }}</span></span>
+                    </div>
+                    <div>
+                        <span><i class="fas fa-bookmark me-1"></i> <span class="saves-count">{{ post.save_count }}</span></span>
+                    </div>
+                </div>
+
+                <!-- Action Bar (Using AJAX) -->
+                <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3">
+                    <button class="btn btn-link text-decoration-none reaction-btn like-btn {% if user_reaction == 'like' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="like">
+                        <i class="fas fa-thumbs-up me-1"></i> Like <span class="like-count">{{ post.get_reaction_counts.like }}</span>
+                    </button>
+                    <button class="btn btn-link text-decoration-none reaction-btn love-btn {% if user_reaction == 'love' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="love">
+                        <i class="fas fa-heart me-1"></i> Love <span class="love-count">{{ post.get_reaction_counts.love }}</span>
+                    </button>
+                    <button class="btn btn-link text-decoration-none reaction-btn haha-btn {% if user_reaction == 'haha' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="haha">
+                        <i class="fas fa-laugh me-1"></i> Haha <span class="haha-count">{{ post.get_reaction_counts.haha }}</span>
+                    </button>
+                    <button class="btn btn-link text-decoration-none reaction-btn wow-btn {% if user_reaction == 'wow' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="wow">
+                        <i class="fas fa-surprise me-1"></i> Wow <span class="wow-count">{{ post.get_reaction_counts.wow }}</span>
+                    </button>
+                    <button class="btn btn-link text-decoration-none reaction-btn sad-btn {% if user_reaction == 'sad' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="sad">
+                        <i class="fas fa-sad-tear me-1"></i> Sad <span class="sad-count">{{ post.get_reaction_counts.sad }}</span>
+                    </button>
+                    <button class="btn btn-link text-decoration-none reaction-btn angry-btn {% if user_reaction == 'angry' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="angry">
+                        <i class="fas fa-angry me-1"></i> Angry <span class="angry-count">{{ post.get_reaction_counts.angry }}</span>
+                    </button>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="comments-section">
+                    <!-- Existing Comments -->
+                    <div class="comments-container comments-container-{{ post.id }} mb-3">
+                        {% for comment in comments %}
+                            {% include 'posts/_comment.html' with comment=comment %}
+                        {% empty %}
+                            <p class="text-muted text-center">No comments yet. Be the first to comment!</p>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Add Comment Form -->
+                    {% if user.is_authenticated %}
+                        <div class="add-comment-form mt-3">
+                            <div class="d-flex gap-2">
+                                <div class="flex-grow-1">
+                                    <input type="text" class="form-control comment-input" 
+                                           placeholder="Add a comment..." 
+                                           data-post-id="{{ post.id }}"
+                                           style="border-radius: 20px;">
+                                </div>
+                                <button class="btn btn-create submit-comment-btn" 
+                                        data-post-id="{{ post.id }}"
+                                        style="border-radius: 20px;">Post</button>
+                            </div>
+                        </div>
                     {% endif %}
                 </div>
             </div>
-
-            {% if post.image %}
-                <div class="text-center mb-4">
-                    <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 500px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
-                </div>
-            {% endif %}
-
-            {% if post.video_url %}
-                <div class="text-center mb-4">
-                    <iframe width="100%" height="400" src="{{ post.video_url }}" frameborder="0" allowfullscreen style="border-radius: 15px;"></iframe>
-                </div>
-            {% endif %}
-
-            {% if post.content %}
-                <div class="mb-4" style="color: #2d3436; line-height: 1.8; font-size: 1.1rem;">
-                    {{ post.content|linebreaks }}
-                </div>
-            {% endif %}
-
-            <hr style="margin: 30px 0;">
-
-            <div class="mb-4">
-                <div class="d-flex gap-2 flex-wrap">
-                    {% with counts=post.get_reaction_counts %}
-                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="reaction_type" value="like">
-                            <button type="submit" class="reaction-btn">👍 {{ counts.like }}</button>
-                        </form>
-                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="reaction_type" value="love">
-                            <button type="submit" class="reaction-btn">❤️ {{ counts.love }}</button>
-                        </form>
-                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="reaction_type" value="haha">
-                            <button type="submit" class="reaction-btn">😂 {{ counts.haha }}</button>
-                        </form>
-                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="reaction_type" value="wow">
-                            <button type="submit" class="reaction-btn">😮 {{ counts.wow }}</button>
-                        </form>
-                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="reaction_type" value="sad">
-                            <button type="submit" class="reaction-btn">😢 {{ counts.sad }}</button>
-                        </form>
-                        <form method="post" action="{% url 'react_to_post' post.id %}" style="display: inline;">
-                            {% csrf_token %}
-                            <input type="hidden" name="reaction_type" value="angry">
-                            <button type="submit" class="reaction-btn">😡 {{ counts.angry }}</button>
-                        </form>
-                    {% endwith %}
-                </div>
-            </div>
-
-            <hr style="margin: 30px 0;">
-
-            <h3 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 20px;">
-                <i class="fas fa-comments me-2"></i>Comments ({{ comments.count }})
-            </h3>
-
-            {% for comment in comments %}
-                <div class="glass-card" style="padding: 20px; margin-bottom: 15px;">
-                    <div class="d-flex align-items-center mb-2">
-                        <strong style="font-size: 1rem;">{{ comment.author.username }}</strong>
-                        {% if comment.author.activity.university %}
-                            <span class="uni-badge uni-{{ comment.author.activity.university }}" style="margin-left: 10px;">
-                                {% if comment.author.activity.university == 'ub' %}UB{% endif %}
-                                {% if comment.author.activity.university == 'buan' %}BUAN{% endif %}
-                                {% if comment.author.activity.university == 'botho' %}BOTHO{% endif %}
-                                {% if comment.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
-                                {% if comment.author.activity.university == 'baisago' %}ISAGO{% endif %}
-                                {% if comment.author.activity.university == 'biust' %}BIUST{% endif %}
-                            </span>
-                        {% endif %}
-                        <span class="text-muted" style="font-size: 0.85rem; margin-left: 10px;">
-                            {{ comment.created_at|timesince }} ago
-                        </span>
-                    </div>
-                    <p style="margin: 0; font-size: 1rem;">{{ comment.content }}</p>
-                </div>
-            {% empty %}
-                <div class="text-center py-4">
-                    <i class="fas fa-comment-slash fa-3x mb-3" style="color: #999;"></i>
-                    <p class="text-muted">No comments yet. Be the first to comment!</p>
-                </div>
-            {% endfor %}
-
-            {% if user.is_authenticated %}
-                <div class="glass-card" style="padding: 25px; margin-top: 30px;">
-                    <h4 style="margin-bottom: 20px;">Add a Comment</h4>
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <textarea name="content" class="form-control" rows="3" placeholder="Write your comment..." style="width: 100%; padding: 15px; border-radius: 15px; border: 2px solid #e0e0e0;"></textarea>
-                        </div>
-                        <button type="submit" class="btn-create" style="padding: 12px 30px;">
-                            <i class="fas fa-paper-plane me-2"></i>Post Comment
-                        </button>
-                    </form>
-                </div>
-            {% else %}
-                <div class="text-center mt-4">
-                    <p><a href="{% url 'login' %}">Login</a> to add a comment</p>
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>
+
+<!-- Report Modal -->
+<div class="modal fade" id="reportModal-{{ post.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: var(--glass-bg); backdrop-filter: blur(10px);">
+            <div class="modal-header">
+                <h5 class="modal-title">Report Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reportForm-{{ post.id }}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <select class="form-select report-reason" data-post-id="{{ post.id }}">
+                            <option value="spam">Spam</option>
+                            <option value="harassment">Harassment</option>
+                            <option value="hate_speech">Hate Speech</option>
+                            <option value="violence">Violence</option>
+                            <option value="nudity">Nudity</option>
+                            <option value="copyright">Copyright Infringement</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Additional Details (Optional)</label>
+                        <textarea class="form-control report-description" rows="3" data-post-id="{{ post.id }}"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-create submit-report-btn" data-post-id="{{ post.id }}">Submit Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body text-center p-0">
+                <img src="" id="modalImage" class="img-fluid" style="max-height: 90vh;">
+            </div>
+            <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openImageModal(imageUrl) {
+    document.getElementById('modalImage').src = imageUrl;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+}
+
+function copyPostLink(postId) {
+    const url = window.location.origin + '/post/' + postId + '/';
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link copied to clipboard!');
+    });
+}
+
+// AJAX handlers for reactions
+document.querySelectorAll('.reaction-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const postId = this.dataset.postId;
+        const reaction = this.dataset.reaction;
+        
+        fetch(`/ajax/react/${postId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reaction_type: reaction })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update counts
+                document.querySelector(`.like-count`).textContent = data.counts.like;
+                document.querySelector(`.love-count`).textContent = data.counts.love;
+                document.querySelector(`.haha-count`).textContent = data.counts.haha;
+                document.querySelector(`.wow-count`).textContent = data.counts.wow;
+                document.querySelector(`.sad-count`).textContent = data.counts.sad;
+                document.querySelector(`.angry-count`).textContent = data.counts.angry;
+                
+                // Update active states
+                document.querySelectorAll('.reaction-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                if (data.user_reaction) {
+                    document.querySelector(`.${data.user_reaction}-btn`).classList.add('active');
+                }
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
