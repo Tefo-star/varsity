@@ -27,4 +27,7 @@ urlpatterns = [
     
     # TEMPORARY: Run migrations manually (REMOVE AFTER USE)
     path('run-migrations/', views.run_migrations, name='run_migrations'),
+    
+    # NEW: Force create tables using management command (REMOVE AFTER USE)
+    path('force-tables/', views.force_create_tables_view, name='force_tables'),
 ]

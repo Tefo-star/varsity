@@ -114,3 +114,61 @@ def run_migrations(request):
             </body>
         </html>
     """)
+
+# ==================== NEW: Force Create Tables View ====================
+def force_create_tables_view(request):
+    """Force create all resources tables using management command"""
+    if not settings.DEBUG:
+        return HttpResponse("Not allowed", status=403)
+    
+    try:
+        # Run the management command
+        call_command('force_create_tables')
+        
+        return HttpResponse("""
+            <html>
+                <head>
+                    <style>
+                        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #00b09b, #96c93d); color: white; padding: 50px; }
+                        .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; }
+                        h1 { font-size: 2.5rem; margin-bottom: 20px; }
+                        .success { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin: 20px 0; }
+                        a { display: inline-block; background: white; color: #00b09b; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>✅ Tables Created Successfully!</h1>
+                        <div class="success">
+                            <p>All resources tables have been created:</p>
+                            <p>• University<br>• Course<br>• ResourceType<br>• Module<br>• Resource<br>• ResourceDownload</p>
+                        </div>
+                        <p>You can now add data through the admin panel.</p>
+                        <a href="/admin/">Go to Admin →</a>
+                    </div>
+                </body>
+            </html>
+        """)
+    except Exception as e:
+        return HttpResponse(f"""
+            <html>
+                <head>
+                    <style>
+                        body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; padding: 50px; }}
+                        .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; }}
+                        h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                        .error {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin: 20px 0; }}
+                        a {{ display: inline-block; background: white; color: #ff416c; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>❌ Error Creating Tables</h1>
+                        <div class="error">
+                            <p>{str(e)}</p>
+                        </div>
+                        <a href="/resources/run-migrations/">Try Migrations Instead</a>
+                    </div>
+                </body>
+            </html>
+        """)
