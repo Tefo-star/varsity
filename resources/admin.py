@@ -148,12 +148,15 @@ class ResourceTypeAdmin(admin.ModelAdmin):
 @admin.register(Resource)
 class ResourceAdmin(admin.ModelAdmin):
     """📎 Resource/File Management"""
+    # FIXED: year_level_display is in list_display, not year_level
     list_display = ['title', 'course', 'resource_type', 'year_level_display', 'academic_year', 'downloads', 'file_link']
     list_filter = ['course__university', 'course', 'resource_type', 'year_level', 'academic_year', 'semester']
     search_fields = ['title', 'description']
     autocomplete_fields = ['university', 'course', 'module', 'resource_type', 'uploaded_by']
     readonly_fields = ['file_size', 'downloads', 'uploaded_at', 'file_preview']
-    list_editable = ['year_level', 'academic_year']
+    # FIXED: These fields must match what's in list_display
+    # year_level_display is a method, not editable, so remove from list_editable
+    list_editable = ['academic_year']  # Only academic_year is editable directly
     list_per_page = 25
     
     fieldsets = (
@@ -180,6 +183,7 @@ class ResourceAdmin(admin.ModelAdmin):
             obj.get_year_level_display()
         )
     year_level_display.short_description = "Year Level"
+    year_level_display.admin_order_field = 'year_level'  # Allows sorting by year_level
     
     def file_link(self, obj):
         return format_html('<a href="{}" target="_blank">📄 View</a>', obj.file.url)
