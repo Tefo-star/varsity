@@ -359,3 +359,71 @@ def fix_missing_columns(request):
             </body>
         </html>
         """)
+
+# ==================== DROP OLD YEAR COLUMN ====================
+def drop_old_year_column(request):
+    """Remove the old year column from resources_resource table"""
+    if not settings.DEBUG:
+        return HttpResponse("Not allowed", status=403)
+    
+    try:
+        with connection.cursor() as cursor:
+            # Check if old year column exists
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='resources_resource' AND column_name='year';
+            """)
+            exists = cursor.fetchone()
+            
+            if exists:
+                # Drop the old column
+                cursor.execute("""
+                    ALTER TABLE resources_resource DROP COLUMN year;
+                """)
+                message = "✅ Successfully dropped old 'year' column"
+            else:
+                message = "✅ Old 'year' column already gone"
+        
+        return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #00b09b, #96c93d); color: white; padding: 50px; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .success {{ background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>✅ Column Fixed!</h1>
+                    <div class="success">
+                        <p>{message}</p>
+                    </div>
+                    <a href="/admin/resources/resource/add/" style="color: white;">Try Adding Resource Again</a>
+                </div>
+            </body>
+        </html>
+        """)
+    except Exception as e:
+        return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; padding: 50px; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .error {{ background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>❌ Error</h1>
+                    <div class="error">
+                        <p>{str(e)}</p>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """)
