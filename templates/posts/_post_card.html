@@ -1,25 +1,25 @@
 {% load static %}
 
-<div class="glass-card post-card mb-4" data-post-id="{{ post.id }}">
+<div class="glass-card post-card mb-4" data-post-id="{{ post.id }}" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);">
     <!-- Post Header -->
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div class="d-flex align-items-center">
             <a href="{% url 'user_profile' post.author.username %}" style="text-decoration: none;">
-                <div class="profile-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                <div class="profile-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; margin-right: 15px; color: white; font-weight: 700; font-size: 1.2rem;">
                     {% if post.author.activity.profile_picture %}
                         <img src="{{ post.author.activity.profile_picture.url }}" alt="{{ post.author.username }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                     {% else %}
-                        <span style="color: white; font-weight: 700; font-size: 1.2rem;">{{ post.author.username|first|upper }}</span>
+                        {{ post.author.username|first|upper }}
                     {% endif %}
                 </div>
             </a>
             <div>
                 <div class="d-flex align-items-center flex-wrap gap-2">
-                    <a href="{% url 'user_profile' post.author.username %}" style="text-decoration: none; color: inherit;">
+                    <a href="{% url 'user_profile' post.author.username %}" style="text-decoration: none; color: #2d3748;">
                         <strong style="font-size: 1.1rem;">{{ post.author.username }}</strong>
                     </a>
                     {% if post.author.activity.university %}
-                        <span class="uni-badge uni-{{ post.author.activity.university }}">
+                        <span class="uni-badge uni-{{ post.author.activity.university }}" style="background: rgba(102, 126, 234, 0.1); color: #4a5568; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
                             <i class="fas fa-graduation-cap me-1"></i>
                             {% if post.author.activity.university == 'ub' %}UB{% endif %}
                             {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
@@ -36,29 +36,29 @@
                         </span>
                     {% endif %}
                 </div>
-                <div class="text-muted" style="font-size: 0.9rem;">
+                <div class="text-muted" style="font-size: 0.9rem; color: #718096;">
                     <span class="post-time" title="{{ post.created_at|date:'F j, Y, g:i a' }}">{{ post.created_at|timesince }} ago</span>
                     {% if post.is_pinned %}
-                        <span class="ms-2"><i class="fas fa-thumbtack" style="color: var(--neon-purple);"></i> Pinned</span>
+                        <span class="ms-2"><i class="fas fa-thumbtack" style="color: #667eea;"></i> Pinned</span>
                     {% endif %}
                 </div>
             </div>
         </div>
         <div>
-            <span class="badge" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; padding: 8px 16px; border-radius: 50px;">
+            <span class="badge" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 50px; font-weight: 500;">
                 {{ post.get_post_type_display }}
             </span>
         </div>
     </div>
 
     <!-- Post Title -->
-    <h3 style="font-weight: 700; margin-bottom: 15px; font-size: 1.5rem;">
+    <h3 style="font-weight: 700; margin-bottom: 15px; font-size: 1.5rem; color: #1a202c;">
         <a href="{% url 'post_detail' post.id %}" style="text-decoration: none; color: inherit;">{{ post.title }}</a>
     </h3>
 
     <!-- Post Content Preview -->
     {% if post.content %}
-        <div style="color: #2d3436; line-height: 1.7; margin-bottom: 20px; font-size: 1rem;">
+        <div style="color: #4a5568; line-height: 1.7; margin-bottom: 20px; font-size: 1rem;">
             {{ post.content|truncatechars:200|linebreaks }}
         </div>
     {% endif %}
@@ -66,35 +66,138 @@
     <!-- Post Image Preview -->
     {% if post.image %}
         <div class="text-center mb-4">
-            <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 300px; border-radius: 15px; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
+            <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 300px; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" onclick="openImageModal('{{ post.image.url }}')">
         </div>
     {% endif %}
 
     <!-- Post Stats -->
-    <div class="d-flex justify-content-between mb-2 text-muted small">
+    <div class="d-flex justify-content-between mb-2" style="color: #718096; font-size: 0.9rem;">
         <div>
-            <span class="me-3"><i class="fas fa-heart me-1" style="color: #ff416c;"></i> <span class="reactions-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span></span>
-            <span class="me-3"><i class="fas fa-comment me-1"></i> <span class="comments-count">{{ post.comment_count }}</span></span>
-            <span><i class="fas fa-share me-1"></i> <span class="shares-count">{{ post.share_count }}</span></span>
+            <span class="me-3"><i class="fas fa-heart me-1" style="color: #f56565;"></i> <span class="reactions-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span></span>
+            <span class="me-3"><i class="fas fa-comment me-1" style="color: #4299e1;"></i> <span class="comments-count">{{ post.comment_count }}</span></span>
+            <span><i class="fas fa-share me-1" style="color: #48bb78;"></i> <span class="shares-count">{{ post.share_count }}</span></span>
         </div>
         <div>
-            <span><i class="fas fa-bookmark me-1"></i> <span class="saves-count">{{ post.save_count }}</span></span>
+            <span><i class="fas fa-bookmark me-1" style="color: #ecc94b;"></i> <span class="saves-count">{{ post.save_count }}</span></span>
         </div>
     </div>
 
     <!-- Action Bar -->
-    <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3">
-        <button class="btn btn-link text-decoration-none reaction-btn like-btn {% if user_reaction == 'like' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="like">
-            <i class="fas fa-thumbs-up me-1"></i> Like <span class="like-count">{{ post.get_reaction_counts.like }}</span>
+    <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3" style="border-color: #e2e8f0 !important;">
+        <button class="btn btn-link text-decoration-none reaction-btn like-btn {% if user_reaction == 'like' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="like" style="color: #4a5568; font-weight: 500;">
+            <i class="fas fa-thumbs-up me-1" style="color: {% if user_reaction == 'like' %}#3182ce{% else %}#718096{% endif %};"></i> Like <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
         </button>
-        <button class="btn btn-link text-decoration-none comment-toggle-btn" data-post-id="{{ post.id }}">
-            <i class="fas fa-comment me-1"></i> Comment
+        <button class="btn btn-link text-decoration-none reaction-btn love-btn {% if user_reaction == 'love' %}active{% endif %}" data-post-id="{{ post.id }}" data-reaction="love" style="color: #4a5568; font-weight: 500;">
+            <i class="fas fa-heart me-1" style="color: {% if user_reaction == 'love' %}#f56565{% else %}#718096{% endif %};"></i> Love <span class="love-count" style="color: #718096;">{{ post.get_reaction_counts.love }}</span>
         </button>
-        <button class="btn btn-link text-decoration-none share-btn" data-post-id="{{ post.id }}">
-            <i class="fas fa-share me-1"></i> Share
+        <button class="btn btn-link text-decoration-none comment-toggle-btn" data-post-id="{{ post.id }}" style="color: #4a5568; font-weight: 500;">
+            <i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment
         </button>
-        <button class="btn btn-link text-decoration-none save-btn {% if user_saved %}active{% endif %}" data-post-id="{{ post.id }}">
-            <i class="fas fa-bookmark me-1"></i> Save
+        <button class="btn btn-link text-decoration-none share-btn" data-post-id="{{ post.id }}" style="color: #4a5568; font-weight: 500;">
+            <i class="fas fa-share me-1" style="color: #48bb78;"></i> Share
+        </button>
+        <button class="btn btn-link text-decoration-none save-btn {% if user_saved %}active{% endif %}" data-post-id="{{ post.id }}" style="color: #4a5568; font-weight: 500;">
+            <i class="fas fa-bookmark me-1" style="color: {% if user_saved %}#ecc94b{% else %}#718096{% endif %};"></i> Save
         </button>
     </div>
+
+    <!-- Comments Section -->
+    <div class="comments-section comments-section-{{ post.id }}" style="display: none;">
+        <!-- Comments Container -->
+        <div class="comments-container comments-container-{{ post.id }} mb-3">
+            {% for comment in post.comments.all|slice:":3" %}
+                {% if not comment.parent %}
+                    {% include 'posts/_comment.html' with comment=comment %}
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if post.comment_count > 3 %}
+            <div class="text-center mb-3">
+                <button class="btn btn-link view-all-comments" data-post-id="{{ post.id }}" style="color: #667eea; text-decoration: none;">
+                    View all {{ post.comment_count }} comments
+                </button>
+            </div>
+        {% endif %}
+        
+        <!-- Add Comment Form -->
+        {% if user.is_authenticated %}
+            <div class="add-comment-form mt-3">
+                <div class="d-flex gap-2">
+                    <div class="flex-grow-1">
+                        <input type="text" class="form-control comment-input" 
+                               placeholder="Add a comment..." 
+                               data-post-id="{{ post.id }}"
+                               style="border-radius: 20px; border: 1px solid #e2e8f0; padding: 10px 15px;">
+                    </div>
+                    <button class="btn btn-primary submit-comment-btn" 
+                            data-post-id="{{ post.id }}"
+                            style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 10px 20px; color: white; font-weight: 500;">
+                        Post
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+// Make sure comments toggle works
+document.addEventListener('click', function(e) {
+    const toggleBtn = e.target.closest('.comment-toggle-btn');
+    if (!toggleBtn) return;
+    
+    e.preventDefault();
+    
+    const postId = toggleBtn.dataset.postId;
+    const commentsSection = document.querySelector(`.comments-section-${postId}`);
+    
+    if (commentsSection) {
+        if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+            commentsSection.style.display = 'block';
+            toggleBtn.innerHTML = '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Hide Comments';
+        } else {
+            commentsSection.style.display = 'none';
+            toggleBtn.innerHTML = '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment';
+        }
+    }
+});
+</script>
+
+<style>
+.reaction-btn.active {
+    color: #667eea !important;
+    font-weight: 600 !important;
+}
+
+.reaction-btn.active i {
+    color: #667eea !important;
+}
+
+.save-btn.active {
+    color: #ecc94b !important;
+}
+
+.save-btn.active i {
+    color: #ecc94b !important;
+}
+
+.comment-like-btn.active {
+    color: #667eea !important;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+    transition: transform 0.2s;
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+</style>
