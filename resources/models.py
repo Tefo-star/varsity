@@ -75,6 +75,8 @@ class ResourceType(models.Model):
     
     class Meta:
         app_label = 'resources'
+        verbose_name = 'Resource Type'
+        verbose_name_plural = 'Resource Types'
     
     def __str__(self):
         return self.name
@@ -127,11 +129,16 @@ class Resource(models.Model):
             models.Index(fields=['university', 'course', 'year_level', 'academic_year']),
             models.Index(fields=['-academic_year']),
         ]
+        verbose_name = 'Resource'
+        verbose_name_plural = 'Resources'
     
     def __str__(self):
         return f"{self.course.code} - {self.title} ({self.get_year_level_display()} {self.academic_year})"
     
     def save(self, *args, **kwargs):
+        # Ensure academic_year is set
+        if not self.academic_year:
+            self.academic_year = datetime.now().year
         super().save(*args, **kwargs)
         self.cleanup_old_years()
     
@@ -151,3 +158,5 @@ class ResourceDownload(models.Model):
     
     class Meta:
         app_label = 'resources'
+        verbose_name = 'Resource Download'
+        verbose_name_plural = 'Resource Downloads'
