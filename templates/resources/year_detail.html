@@ -11,40 +11,53 @@
     </a>
 </div>
 
-<!-- Group resources by module -->
+<!-- ==================== MODULES FOR THIS YEAR ==================== -->
+<h3 class="mb-3">📁 Modules with {{ year }} Resources</h3>
+
 {% for module in modules %}
-    {% with module_resources=resources|dictsortreversed:"module_id" %}
-        {% if module_resources %}
-            <h4 class="mb-3">{{ module.name }}</h4>
-            <div class="row mb-4">
-                {% for resource in resources %}
-                    {% if resource.module == module %}
-                        <div class="col-md-6 mb-3">
-                            <div class="glass-card">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-file-pdf fa-3x me-3" style="color: #ff416c;"></i>
+    {% for resource in resources %}
+        {% if resource.module == module %}
+            <div class="glass-card mb-4">
+                <h4 class="mb-3">
+                    <i class="fas fa-folder me-2" style="color: #ffd700;"></i>
+                    {{ module.name }}
+                </h4>
+                
+                <!-- Resources in this module -->
+                <div class="row">
+                    {% for resource in resources %}
+                        {% if resource.module == module %}
+                            <div class="col-md-6 mb-2">
+                                <div class="d-flex align-items-center p-2" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
+                                    <i class="fas fa-file-pdf fa-2x me-3" style="color: #ff416c;"></i>
                                     <div class="flex-grow-1">
-                                        <h5>{{ resource.title }}</h5>
-                                        <p class="text-muted small mb-1">
-                                            <i class="fas fa-tag me-1"></i>{{ resource.resource_type.name }} |
-                                            <i class="fas fa-download me-1"></i>{{ resource.downloads }} downloads
-                                        </p>
+                                        <strong>{{ resource.title }}</strong><br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-tag me-1"></i>{{ resource.resource_type.name }}
+                                            <i class="fas fa-download ms-3 me-1"></i>{{ resource.downloads }}
+                                        </small>
                                     </div>
-                                    <div class="btn-group">
-                                        <a href="{% url 'view_pdf' resource.id %}" class="btn-create" target="_blank">
+                                    <div>
+                                        <a href="{% url 'view_pdf' resource.id %}" class="btn-create btn-sm" target="_blank">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{% url 'download_resource' resource.id %}" class="btn-create" style="margin-left: 5px;">
+                                        <a href="{% url 'download_resource' resource.id %}" class="btn-create btn-sm">
                                             <i class="fas fa-download"></i>
                                         </a>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    {% endif %}
-                {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
             </div>
         {% endif %}
-    {% endwith %}
+    {% endfor %}
+{% empty %}
+    <div class="glass-card text-center py-5">
+        <i class="fas fa-file-pdf fa-4x mb-3" style="color: #ff416c;"></i>
+        <h3>No resources for {{ year }}</h3>
+        <p class="text-muted">Check another year or upload materials!</p>
+    </div>
 {% endfor %}
 {% endblock %}

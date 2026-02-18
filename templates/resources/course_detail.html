@@ -11,72 +11,44 @@
     </a>
 </div>
 
-<!-- Navigation Tabs: Folders vs Years -->
-<ul class="nav nav-tabs mb-4" id="resourceTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="folders-tab" data-bs-toggle="tab" data-bs-target="#folders" type="button" role="tab">
-            <i class="fas fa-folder me-2"></i>Browse by Modules
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="years-tab" data-bs-toggle="tab" data-bs-target="#years" type="button" role="tab">
-            <i class="fas fa-calendar me-2"></i>Browse by Year
-        </button>
-    </li>
-</ul>
-
-<div class="tab-content" id="resourceTabsContent">
-    <!-- Folders View -->
-    <div class="tab-pane fade show active" id="folders" role="tabpanel">
-        <div class="row">
-            {% for module in modules %}
-                <div class="col-md-4 mb-4">
-                    <a href="{% url 'module_detail' university.code course.code module.id %}" style="text-decoration: none;">
-                        <div class="glass-card text-center">
-                            <i class="fas fa-folder fa-4x mb-3" style="color: #ffd700;"></i>
-                            <h4>{{ module.name }}</h4>
-                            {% if module.description %}
-                                <p class="text-muted">{{ module.description|truncatechars:50 }}</p>
-                            {% endif %}
-                            <span class="badge bg-info">{{ module.submodules.count }} subfolders</span>
-                        </div>
-                    </a>
+<!-- ==================== YEARS OF STUDY FIRST ==================== -->
+<h3 class="mb-3">📅 Select Year of Study</h3>
+<div class="row mb-5">
+    {% for year in years %}
+        <div class="col-md-4 mb-3">
+            <a href="{% url 'year_detail' university.code course.code year %}" style="text-decoration: none;">
+                <div class="glass-card text-center">
+                    <i class="fas fa-calendar-alt fa-4x mb-3" style="color: var(--neon-purple);"></i>
+                    <h2>{{ year }}</h2>
+                    <p class="text-muted">Academic Year</p>
                 </div>
-            {% empty %}
-                <div class="col-12">
-                    <div class="glass-card text-center py-5">
-                        <i class="fas fa-folder-open fa-4x mb-3" style="color: #ff416c;"></i>
-                        <h3>No modules yet</h3>
-                        <p class="text-muted">Modules will appear here once added.</p>
-                    </div>
-                </div>
-            {% endfor %}
+            </a>
         </div>
-    </div>
-    
-    <!-- Years View -->
-    <div class="tab-pane fade" id="years" role="tabpanel">
-        <div class="row">
-            {% for year in years %}
-                <div class="col-md-3 mb-4">
-                    <a href="{% url 'year_detail' university.code course.code year %}" style="text-decoration: none;">
-                        <div class="glass-card text-center">
-                            <i class="fas fa-calendar-alt fa-4x mb-3" style="color: var(--neon-purple);"></i>
-                            <h2>{{ year }}</h2>
-                            <p class="text-muted">Academic Year</p>
-                        </div>
-                    </a>
-                </div>
-            {% empty %}
-                <div class="col-12">
-                    <div class="glass-card text-center py-5">
-                        <i class="fas fa-calendar-times fa-4x mb-3" style="color: #ff416c;"></i>
-                        <h3>No resources yet</h3>
-                        <p class="text-muted">Resources will appear here once added.</p>
-                    </div>
-                </div>
-            {% endfor %}
+    {% empty %}
+        <div class="col-12">
+            <div class="glass-card text-center py-4">
+                <i class="fas fa-calendar-times fa-3x mb-2" style="color: #ff416c;"></i>
+                <p>No resources available yet.</p>
+            </div>
         </div>
-    </div>
+    {% endfor %}
 </div>
+
+<!-- ==================== MODULES SECONDARY ==================== -->
+{% if modules %}
+    <h3 class="mb-3">📁 Browse by Module</h3>
+    <div class="row">
+        {% for module in modules %}
+            <div class="col-md-4 mb-3">
+                <a href="{% url 'module_detail' university.code course.code module.id %}" style="text-decoration: none;">
+                    <div class="glass-card text-center">
+                        <i class="fas fa-folder fa-4x mb-3" style="color: #ffd700;"></i>
+                        <h4>{{ module.name }}</h4>
+                        <p class="text-muted">{{ module.submodules.count }} subfolders</p>
+                    </div>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
 {% endblock %}
