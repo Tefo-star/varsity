@@ -43,8 +43,9 @@ urlpatterns = [
     path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
     path('comment/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
     
-    # ==================== MIGRATION HELPER ====================
+    # ==================== MIGRATION HELPERS ====================
     path('run-migrations/', views.run_posts_migrations, name='run_posts_migrations'),
+    path('fake-migration/', views.fake_post_migration, name='fake_post_migration'),  # NEW TEMPORARY URL
     
     # Admin utilities
     path('list-users/', views.list_users, name='list_users'),

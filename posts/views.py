@@ -13,6 +13,8 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.management import call_command
 import json
 import io
 import sys
@@ -699,6 +701,72 @@ def react_to_comment(request, comment_id):
             )
     
     return redirect('post_detail', post_id=comment.post.id)
+
+# ==================== TEMPORARY FAKE MIGRATION VIEW ====================
+@staff_member_required
+def fake_post_migration(request):
+    """Temporary view to fake the 0007 migration on Render."""
+    from django.core.management import call_command
+    from io import StringIO
+    
+    out = StringIO()
+    try:
+        # This marks migration 0007 as applied without running the SQL
+        call_command('migrate', 'posts', '0007', '--fake', stdout=out)
+        
+        # Also try to run any other pending migrations normally
+        call_command('migrate', 'posts', stdout=out)
+        
+        return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
+                    .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .success {{ background: rgba(0,255,0,0.2); padding: 20px; border-radius: 10px; }}
+                    pre {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto; color: #fff; }}
+                    a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>✅ Migration Fake Successful</h1>
+                    <div class="success">
+                        <h2>Migration 0007 has been faked successfully!</h2>
+                    </div>
+                    <h3>Output:</h3>
+                    <pre>{out.getvalue()}</pre>
+                    <a href="/post/1/">Go to Post 1</a>
+                    <a href="/admin/">Go to Admin</a>
+                </div>
+            </body>
+        </html>
+        """)
+    except Exception as e:
+        return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
+                    .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .error {{ background: rgba(255,0,0,0.2); padding: 20px; border-radius: 10px; }}
+                    pre {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto; color: #fff; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>❌ Error</h1>
+                    <div class="error">
+                        <h2>Error: {str(e)}</h2>
+                    </div>
+                    <pre>{out.getvalue()}</pre>
+                    <a href="/admin/">Go to Admin</a>
+                </div>
+            </body>
+        </html>
+        """, status=500)
 
 # ==================== MIGRATION RUNNER ====================
 def run_posts_migrations(request):
