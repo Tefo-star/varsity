@@ -27,16 +27,16 @@ from .forms import PostForm, CommentForm
 
 # ==================== HOME FEED WITH INFINITE SCROLL ====================
 def home(request):
-    # Get all posts with annotations
+    # Get all posts with annotations - ALL RENAMED to avoid property conflicts
     posts_list = Post.objects.filter(is_archived=False).select_related(
         'author', 'author__activity'
     ).prefetch_related(
         'comments', 'reactions', 'shares', 'saves'
     ).annotate(
-        reaction_count=Count('reactions'),
-        comments_count=Count('comments'),  # Changed from comment_count to comments_count
-        share_count=Count('shares'),
-        save_count=Count('saves')
+        total_reactions=Count('reactions'),    # Changed from reaction_count
+        comments_count=Count('comments'),       # Changed from comment_count
+        total_shares=Count('shares'),           # Changed from share_count
+        total_saves=Count('saves')              # Changed from save_count
     )
     
     # Pagination for infinite scroll
@@ -102,10 +102,10 @@ def load_more_posts(request):
     ).prefetch_related(
         'comments', 'reactions', 'shares', 'saves'
     ).annotate(
-        reaction_count=Count('reactions'),
-        comments_count=Count('comments'),  # Changed from comment_count to comments_count
-        share_count=Count('shares'),
-        save_count=Count('saves')
+        total_reactions=Count('reactions'),    # Changed from reaction_count
+        comments_count=Count('comments'),       # Changed from comment_count
+        total_shares=Count('shares'),           # Changed from share_count
+        total_saves=Count('saves')              # Changed from save_count
     )
     
     paginator = Paginator(posts_list, 10)
