@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.core.management import call_command
 from django.conf import settings
+from django.db import connection
 from .models import University, Course, Module, Resource, ResourceType
 
 def resources_dashboard(request):
@@ -30,13 +31,17 @@ def course_detail(request, uni_code, course_code):
     # Get year levels that have resources
     year_levels_data = []
     for level_num, level_name in Resource.YEAR_LEVELS:
-        resource_count = Resource.objects.filter(course=course, year_level=level_num).count()
-        if resource_count > 0:
-            year_levels_data.append({
-                'level': level_num,
-                'name': level_name,
-                'resource_count': resource_count,
-            })
+        try:
+            resource_count = Resource.objects.filter(course=course, year_level=level_num).count()
+            if resource_count > 0:
+                year_levels_data.append({
+                    'level': level_num,
+                    'name': level_name,
+                    'resource_count': resource_count,
+                })
+        except:
+            # Column might not exist yet, skip
+            pass
     
     # Get top-level modules
     modules = course.modules.filter(parent_module=None)
@@ -58,14 +63,20 @@ def year_level_detail(request, uni_code, course_code, year_level):
     year_level_dict = dict(Resource.YEAR_LEVELS)
     year_level_name = year_level_dict.get(year_level, f'Year {year_level}')
     
-    # Get resources for this year level
-    resources = Resource.objects.filter(course=course, year_level=year_level)
-    
-    # Get unique academic years
-    academic_years = resources.values_list('academic_year', flat=True).distinct().order_by('-academic_year')
-    
-    # Get modules that have resources in this year level
-    modules = Module.objects.filter(resource__in=resources).distinct()
+    try:
+        # Get resources for this year level
+        resources = Resource.objects.filter(course=course, year_level=year_level)
+        
+        # Get unique academic years
+        academic_years = resources.values_list('academic_year', flat=True).distinct().order_by('-academic_year')
+        
+        # Get modules that have resources in this year level
+        modules = Module.objects.filter(resource__in=resources).distinct()
+    except:
+        # Columns might not exist yet
+        resources = Resource.objects.none()
+        academic_years = []
+        modules = Module.objects.none()
     
     context = {
         'university': university,
@@ -86,20 +97,23 @@ def year_level_academic_detail(request, uni_code, course_code, year_level, acade
     year_level_dict = dict(Resource.YEAR_LEVELS)
     year_level_name = year_level_dict.get(year_level, f'Year {year_level}')
     
-    resources = Resource.objects.filter(
-        course=course, 
-        year_level=year_level,
-        academic_year=academic_year
-    )
-    
-    modules = Module.objects.filter(resource__in=resources).distinct()
-    
-    # Group by module
-    resources_by_module = {}
-    for module in modules:
-        module_resources = resources.filter(module=module)
-        if module_resources.exists():
-            resources_by_module[module] = module_resources
+    try:
+        resources = Resource.objects.filter(
+            course=course, 
+            year_level=year_level,
+            academic_year=academic_year
+        )
+        
+        modules = Module.objects.filter(resource__in=resources).distinct()
+        
+        # Group by module
+        resources_by_module = {}
+        for module in modules:
+            module_resources = resources.filter(module=module)
+            if module_resources.exists():
+                resources_by_module[module] = module_resources
+    except:
+        resources_by_module = {}
     
     context = {
         'university': university,
@@ -223,4 +237,125 @@ def force_create_tables_view(request):
                     </div>
                 </body>
             </html>
+        """)
+
+# ==================== FIX MISSING COLUMNS ====================
+def fix_missing_columns(request):
+    """Add missing year_level and academic_year columns to resources_resource table"""
+    if not settings.DEBUG:
+        return HttpResponse("Not allowed", status=403)
+    
+    try:
+        with connection.cursor() as cursor:
+            messages = []
+            
+            # Check if year_level column exists
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='resources_resource' AND column_name='year_level';
+            """)
+            exists = cursor.fetchone()
+            
+            if not exists:
+                # Add the missing column
+                cursor.execute("""
+                    ALTER TABLE resources_resource 
+                    ADD COLUMN year_level integer DEFAULT 1;
+                """)
+                messages.append("✅ Added year_level column")
+            else:
+                messages.append("✅ year_level column already exists")
+            
+            # Check if academic_year column exists
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='resources_resource' AND column_name='academic_year';
+            """)
+            year_exists = cursor.fetchone()
+            
+            if not year_exists:
+                cursor.execute("""
+                    ALTER TABLE resources_resource 
+                    ADD COLUMN academic_year integer DEFAULT 2024;
+                """)
+                messages.append("✅ Added academic_year column")
+            else:
+                messages.append("✅ academic_year column already exists")
+            
+            # Check if module_id column exists and has correct constraints
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='resources_resource' AND column_name='module_id';
+            """)
+            module_exists = cursor.fetchone()
+            
+            if not module_exists:
+                cursor.execute("""
+                    ALTER TABLE resources_resource 
+                    ADD COLUMN module_id integer REFERENCES resources_module(id) ON DELETE CASCADE;
+                """)
+                messages.append("✅ Added module_id column")
+            else:
+                messages.append("✅ module_id column already exists")
+            
+            # Create indexes if they don't exist
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS resources_r_year_level_idx 
+                ON resources_resource(year_level);
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS resources_r_academic_year_idx 
+                ON resources_resource(academic_year DESC);
+            """)
+            
+            message_html = "<br>".join([f"• {m}" for m in messages])
+        
+        return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #00b09b, #96c93d); color: white; padding: 50px; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .success {{ background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left; }}
+                    a {{ display: inline-block; background: white; color: #00b09b; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>✅ Database Fixed!</h1>
+                    <div class="success">
+                        {message_html}
+                    </div>
+                    <p>Missing columns have been added to your database.</p>
+                    <a href="/resources/university/biust/BEng%20Chemical/">Go back to BEng Chemical</a>
+                    <a href="/admin/">Go to Admin</a>
+                </div>
+            </body>
+        </html>
+        """)
+    except Exception as e:
+        return HttpResponse(f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #ff416c, #ff4b2b); color: white; padding: 50px; }}
+                    .container {{ max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; }}
+                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                    .error {{ background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin: 20px 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>❌ Error</h1>
+                    <div class="error">
+                        <p>{str(e)}</p>
+                    </div>
+                    <a href="/resources/run-migrations/">Try running migrations instead</a>
+                </div>
+            </body>
+        </html>
         """)
