@@ -42,6 +42,7 @@ class Post(models.Model):
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='replies')
     content = models.TextField()
     created_at = models.DateTimeField(default=timezone.now)
     
@@ -50,6 +51,32 @@ class Comment(models.Model):
     
     def __str__(self):
         return f"Comment by {self.author.username}"
+    
+    @property
+    def is_reply(self):
+        return self.parent is not None
+    
+    @property
+    def reply_count(self):
+        return self.replies.count()
+
+class CommentReaction(models.Model):
+    REACTION_TYPES = [
+        ('like', '👍 Like'),
+        ('love', '❤️ Love'),
+        ('haha', '😂 Haha'),
+        ('wow', '😮 Wow'),
+        ('sad', '😢 Sad'),
+        ('angry', '😡 Angry'),
+    ]
+    
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    reaction_type = models.CharField(max_length=10, choices=REACTION_TYPES)
+    created_at = models.DateTimeField(default=timezone.now)
+    
+    class Meta:
+        unique_together = ['comment', 'user']
 
 class Reaction(models.Model):
     REACTION_TYPES = [
