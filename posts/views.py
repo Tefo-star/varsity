@@ -7,16 +7,38 @@ from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.timesince import timesince
 from datetime import timedelta
 from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
+from django.db.models import Q, Count
+from django.core.paginator import Paginator
 import json
-from .models import Post, Comment, Reaction, CommentReaction
+from .models import (
+    Post, Comment, Reaction, CommentReaction, 
+    PostShare, PostSave, PostReport, Notification,
+    UserActivity, Follow
+)
 from .forms import PostForm, CommentForm
 
+# ==================== HOME FEED WITH INFINITE SCROLL ====================
 def home(request):
-    posts = Post.objects.all()
+    # Get all posts with annotations
+    posts_list = Post.objects.filter(is_archived=False).select_related(
+        'author', 'author__activity'
+    ).prefetch_related(
+        'comments', 'reactions', 'shares', 'saves'
+    ).annotate(
+        reaction_count=Count('reactions'),
+        comment_count=Count('comments'),
+        share_count=Count('shares'),
+        save_count=Count('saves')
+    )
+    
+    # Pagination for infinite scroll
+    paginator = Paginator(posts_list, 10)  # 10 posts per page
+    page = request.GET.get('page', 1)
+    posts = paginator.get_page(page)
     
     # Get online users count
     online_count = 0
@@ -32,17 +54,71 @@ def home(request):
         if last_seen_str:
             last_seen = parse_datetime(last_seen_str)
             if last_seen:
-                new_posts_count = Post.objects.filter(created_at__gt=last_seen).count()
+                new_posts_count = Post.objects.filter(
+                    created_at__gt=last_seen,
+                    is_archived=False
+                ).count()
         
         request.session['last_seen'] = timezone.now().isoformat()
+    
+    # Get trending posts (most reactions in last 7 days)
+    week_ago = timezone.now() - timedelta(days=7)
+    trending_posts = Post.objects.filter(
+        created_at__gte=week_ago,
+        is_archived=False
+    ).annotate(
+        reaction_count=Count('reactions')
+    ).order_by('-reaction_count')[:5]
+    
+    # Get suggested users to follow
+    suggested_users = []
+    if request.user.is_authenticated:
+        following_ids = Follow.objects.filter(
+            follower=request.user
+        ).values_list('following_id', flat=True)
+        
+        suggested_users = User.objects.exclude(
+            id__in=list(following_ids) + [request.user.id]
+        ).filter(is_active=True)[:5]
     
     context = {
         'posts': posts,
         'online_count': online_count,
         'new_posts_count': new_posts_count,
+        'trending_posts': trending_posts,
+        'suggested_users': suggested_users,
     }
     return render(request, 'posts/home.html', context)
 
+# ==================== INFINITE SCROLL API ====================
+def load_more_posts(request):
+    page = request.GET.get('page', 1)
+    posts_list = Post.objects.filter(is_archived=False).select_related(
+        'author', 'author__activity'
+    ).prefetch_related(
+        'comments', 'reactions', 'shares', 'saves'
+    ).annotate(
+        reaction_count=Count('reactions'),
+        comment_count=Count('comments'),
+        share_count=Count('shares'),
+        save_count=Count('saves')
+    )
+    
+    paginator = Paginator(posts_list, 10)
+    posts = paginator.get_page(page)
+    
+    posts_html = render_to_string('posts/_post_cards.html', {
+        'posts': posts,
+        'user': request.user
+    }, request=request)
+    
+    return JsonResponse({
+        'posts_html': posts_html,
+        'has_next': posts.has_next(),
+        'next_page': posts.next_page_number() if posts.has_next() else None
+    })
+
+# ==================== CREATE POST ====================
 @login_required
 def create_post(request):
     if request.method == 'POST':
@@ -51,16 +127,33 @@ def create_post(request):
             post = form.save(commit=False)
             post.author = request.user
             post.save()
+            
+            # Update user activity
+            activity, _ = UserActivity.objects.get_or_create(user=request.user)
+            activity.last_post_time = timezone.now()
+            activity.save()
+            
             messages.success(request, 'Post created successfully! 🎉')
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                post_html = render_to_string('posts/_post_card.html', {
+                    'post': post,
+                    'user': request.user
+                }, request=request)
+                return JsonResponse({'success': True, 'post_html': post_html})
+            
             return redirect('home')
     else:
         form = PostForm()
     
     return render(request, 'posts/create_post.html', {'form': form})
 
+# ==================== POST DETAIL ====================
 def post_detail(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    comments = post.comments.filter(parent=None)  # Only top-level comments
+    post = get_object_or_404(Post, id=post_id, is_archived=False)
+    comments = post.comments.filter(parent=None).select_related(
+        'author', 'author__activity'
+    ).prefetch_related('reactions', 'replies')
     
     if request.method == 'POST' and request.user.is_authenticated:
         comment_form = CommentForm(request.POST)
@@ -69,23 +162,41 @@ def post_detail(request, post_id):
             comment.post = post
             comment.author = request.user
             comment.save()
+            
+            # Create notification for post author (if not self-comment)
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    sender=request.user,
+                    notification_type='comment',
+                    post=post,
+                    comment=comment
+                )
+            
             messages.success(request, 'Comment added!')
             return redirect('post_detail', post_id=post.id)
     else:
         comment_form = CommentForm()
     
+    # Check if user has interacted
+    user_reaction = post.get_user_reaction(request.user) if request.user.is_authenticated else None
+    user_saved = PostSave.objects.filter(post=post, user=request.user).exists() if request.user.is_authenticated else False
+    
     context = {
         'post': post,
         'comments': comments,
         'comment_form': comment_form,
+        'user_reaction': user_reaction,
+        'user_saved': user_saved,
     }
     return render(request, 'posts/post_detail.html', context)
 
+# ==================== DELETE POST ====================
 @login_required
 def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     
-    if request.user != post.author:
+    if request.user != post.author and not request.user.is_superuser:
         messages.error(request, "You can only delete your own posts!")
         return redirect('home')
     
@@ -96,113 +207,135 @@ def delete_post(request, post_id):
     
     return render(request, 'posts/confirm_delete.html', {'post': post})
 
+# ==================== EDIT POST ====================
 @login_required
-@require_POST
-def react_to_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    reaction_type = request.POST.get('reaction_type')
+def edit_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id, author=request.user)
     
-    existing_reaction = Reaction.objects.filter(
-        post=post,
-        user=request.user
-    ).first()
-    
-    if existing_reaction:
-        if existing_reaction.reaction_type == reaction_type:
-            existing_reaction.delete()
-            messages.success(request, f'Reaction removed')
-        else:
-            existing_reaction.reaction_type = reaction_type
-            existing_reaction.save()
-            messages.success(request, f'Reaction updated to {reaction_type}')
+    if request.method == 'POST':
+        form = PostForm(request.POST, request.FILES, instance=post)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Post updated successfully! ✏️")
+            return redirect('post_detail', post_id=post.id)
     else:
-        Reaction.objects.create(
-            post=post,
-            user=request.user,
-            reaction_type=reaction_type
-        )
-        messages.success(request, f'Reacted with {reaction_type}')
+        form = PostForm(instance=post)
     
-    return redirect('post_detail', post_id=post.id)
+    return render(request, 'posts/edit_post.html', {'form': form, 'post': post})
 
+# ==================== PROFILE ====================
 @login_required
-def profile(request):
-    user = request.user
-    user_posts = Post.objects.filter(author=user)
-    user_activity = getattr(user, 'activity', None)
+def profile(request, username=None):
+    if username:
+        profile_user = get_object_or_404(User, username=username)
+    else:
+        profile_user = request.user
+    
+    user_activity, created = UserActivity.objects.get_or_create(user=profile_user)
+    user_posts = Post.objects.filter(author=profile_user, is_archived=False)
+    
+    # Check follow status
+    is_following = False
+    if request.user.is_authenticated and request.user != profile_user:
+        is_following = Follow.objects.filter(
+            follower=request.user,
+            following=profile_user
+        ).exists()
+    
+    # Get followers/following counts
+    followers_count = Follow.objects.filter(following=profile_user).count()
+    following_count = Follow.objects.filter(follower=profile_user).count()
     
     context = {
-        'user': user,
-        'user_posts': user_posts,
+        'profile_user': profile_user,
         'user_activity': user_activity,
+        'user_posts': user_posts,
+        'is_following': is_following,
+        'followers_count': followers_count,
+        'following_count': following_count,
     }
     return render(request, 'posts/profile.html', context)
 
-def online_users_api(request):
-    online_count = 0
-    for user in User.objects.filter(is_active=True):
-        if cache.get(f'online_{user.id}'):
-            online_count += 1
-    return JsonResponse({'count': online_count})
-
-def test_view(request):
-    return render(request, 'test.html')
-
-# ==================== COMMENT REPLY (Regular) ====================
-@login_required
-def reply_to_comment(request, comment_id):
-    parent_comment = get_object_or_404(Comment, id=comment_id)
-    
-    if request.method == 'POST':
-        content = request.POST.get('content')
-        if content:
-            Comment.objects.create(
-                post=parent_comment.post,
-                author=request.user,
-                parent=parent_comment,
-                content=content
-            )
-            messages.success(request, 'Reply added!')
-    
-    return redirect('post_detail', post_id=parent_comment.post.id)
-
-# ==================== REACT TO COMMENT (Regular) ====================
+# ==================== FOLLOW/UNFOLLOW ====================
 @login_required
 @require_POST
-def react_to_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-    reaction_type = request.POST.get('reaction_type')
+def toggle_follow(request, username):
+    target_user = get_object_or_404(User, username=username)
     
-    existing_reaction = CommentReaction.objects.filter(
-        comment=comment,
-        user=request.user
-    ).first()
+    if request.user == target_user:
+        return JsonResponse({'success': False, 'error': "Can't follow yourself"})
     
-    if existing_reaction:
-        if existing_reaction.reaction_type == reaction_type:
-            existing_reaction.delete()
-        else:
-            existing_reaction.reaction_type = reaction_type
-            existing_reaction.save()
+    follow, created = Follow.objects.get_or_create(
+        follower=request.user,
+        following=target_user
+    )
+    
+    if not created:
+        follow.delete()
+        is_following = False
     else:
-        CommentReaction.objects.create(
-            comment=comment,
-            user=request.user,
-            reaction_type=reaction_type
+        # Create notification
+        Notification.objects.create(
+            recipient=target_user,
+            sender=request.user,
+            notification_type='follow'
         )
+        is_following = True
     
-    return redirect('post_detail', post_id=comment.post.id)
+    # Update counts
+    followers_count = Follow.objects.filter(following=target_user).count()
+    following_count = Follow.objects.filter(follower=request.user).count()
+    
+    # Update user activity counts
+    target_activity, _ = UserActivity.objects.get_or_create(user=target_user)
+    target_activity.follower_count = followers_count
+    target_activity.save()
+    
+    user_activity, _ = UserActivity.objects.get_or_create(user=request.user)
+    user_activity.following_count = following_count
+    user_activity.save()
+    
+    return JsonResponse({
+        'success': True,
+        'is_following': is_following,
+        'followers_count': followers_count,
+        'following_count': following_count
+    })
+
+# ==================== NOTIFICATIONS ====================
+@login_required
+def notifications(request):
+    notifications_list = Notification.objects.filter(
+        recipient=request.user
+    ).select_related('sender', 'post', 'comment').order_by('-created_at')[:50]
+    
+    # Mark as read
+    notifications_list.filter(is_read=False).update(is_read=True)
+    
+    context = {
+        'notifications': notifications_list
+    }
+    return render(request, 'posts/notifications.html', context)
+
+@login_required
+def get_notification_count(request):
+    count = Notification.objects.filter(
+        recipient=request.user,
+        is_read=False
+    ).count()
+    return JsonResponse({'count': count})
 
 # ==================== AJAX REACTION (NO PAGE RELOAD) ====================
 @login_required
 @require_POST
 def ajax_react_to_post(request, post_id):
-    """React to a post without page reload"""
+    """React to a post without page reload - ONLY ONE REACTION PER USER"""
     try:
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         reaction_type = data.get('reaction_type')
         
+        # Check if user already has a reaction on this post
         existing_reaction = Reaction.objects.filter(
             post=post,
             user=request.user
@@ -210,19 +343,31 @@ def ajax_react_to_post(request, post_id):
         
         if existing_reaction:
             if existing_reaction.reaction_type == reaction_type:
+                # Same reaction - remove it (toggle off)
                 existing_reaction.delete()
                 action = 'removed'
             else:
+                # Different reaction - update it (only one allowed)
                 existing_reaction.reaction_type = reaction_type
                 existing_reaction.save()
                 action = 'updated'
         else:
+            # No existing reaction - create new
             Reaction.objects.create(
                 post=post,
                 user=request.user,
                 reaction_type=reaction_type
             )
             action = 'added'
+            
+            # Create notification for post author
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    sender=request.user,
+                    notification_type='reaction',
+                    post=post
+                )
         
         # Get updated counts
         counts = post.get_reaction_counts()
@@ -230,7 +375,8 @@ def ajax_react_to_post(request, post_id):
         return JsonResponse({
             'success': True,
             'action': action,
-            'counts': counts
+            'counts': counts,
+            'user_reaction': reaction_type if action != 'removed' else None
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -244,17 +390,40 @@ def ajax_add_comment(request, post_id):
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         content = data.get('content')
-        parent_id = data.get('parent_id')  # For replies
+        parent_id = data.get('parent_id')
         
-        if not content:
+        if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
         
         comment = Comment.objects.create(
             post=post,
             author=request.user,
-            content=content,
+            content=content.strip(),
             parent_id=parent_id
         )
+        
+        # Create notification
+        if parent_id:
+            # Reply to a comment
+            parent_comment = Comment.objects.get(id=parent_id)
+            if parent_comment.author != request.user:
+                Notification.objects.create(
+                    recipient=parent_comment.author,
+                    sender=request.user,
+                    notification_type='reply',
+                    post=post,
+                    comment=comment
+                )
+        else:
+            # New comment on post
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    sender=request.user,
+                    notification_type='comment',
+                    post=post,
+                    comment=comment
+                )
         
         # Return the new comment HTML
         comment_html = render_to_string('posts/_comment.html', {
@@ -266,7 +435,29 @@ def ajax_add_comment(request, post_id):
             'success': True,
             'comment_html': comment_html,
             'comment_id': comment.id,
-            'parent_id': parent_id
+            'parent_id': parent_id,
+            'comment_count': post.comment_count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==================== AJAX DELETE COMMENT ====================
+@login_required
+@require_POST
+def ajax_delete_comment(request, comment_id):
+    """Delete a comment"""
+    try:
+        comment = get_object_or_404(Comment, id=comment_id)
+        
+        if comment.author != request.user and not request.user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        post_id = comment.post.id
+        comment.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'post_id': post_id
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -279,7 +470,7 @@ def ajax_react_to_comment(request, comment_id):
     try:
         comment = get_object_or_404(Comment, id=comment_id)
         data = json.loads(request.body)
-        reaction_type = data.get('reaction_type')
+        reaction_type = data.get('reaction_type', 'like')
         
         existing_reaction = CommentReaction.objects.filter(
             comment=comment,
@@ -287,30 +478,232 @@ def ajax_react_to_comment(request, comment_id):
         ).first()
         
         if existing_reaction:
-            if existing_reaction.reaction_type == reaction_type:
-                existing_reaction.delete()
-            else:
-                existing_reaction.reaction_type = reaction_type
-                existing_reaction.save()
+            existing_reaction.delete()
+            action = 'removed'
         else:
             CommentReaction.objects.create(
                 comment=comment,
-                user=request.user,
-                reaction_type=reaction_type
+                user=request.user
             )
+            action = 'added'
+            
+            # Create notification for comment author
+            if comment.author != request.user:
+                Notification.objects.create(
+                    recipient=comment.author,
+                    sender=request.user,
+                    notification_type='reaction',
+                    post=comment.post,
+                    comment=comment
+                )
         
         # Get updated reaction count
-        reaction_count = comment.commentreaction_set.count()
+        reaction_count = comment.reactions.count()
         
         return JsonResponse({
             'success': True,
+            'action': action,
             'reaction_count': reaction_count
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== LIST USERS (Optional - Keep for debugging) ====================
+# ==================== AJAX SAVE POST ====================
+@login_required
+@require_POST
+def ajax_save_post(request, post_id):
+    """Save/unsave a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        saved, created = PostSave.objects.get_or_create(
+            post=post,
+            user=request.user
+        )
+        
+        if not created:
+            saved.delete()
+            is_saved = False
+        else:
+            is_saved = True
+        
+        save_count = post.saves.count()
+        
+        return JsonResponse({
+            'success': True,
+            'is_saved': is_saved,
+            'save_count': save_count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==================== AJAX SHARE POST ====================
+@login_required
+@require_POST
+def ajax_share_post(request, post_id):
+    """Share a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        share, created = PostShare.objects.get_or_create(
+            post=post,
+            user=request.user
+        )
+        
+        if created:
+            # Create notification for post author
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    sender=request.user,
+                    notification_type='share',
+                    post=post
+                )
+        
+        share_count = post.shares.count()
+        
+        return JsonResponse({
+            'success': True,
+            'share_count': share_count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==================== AJAX REPORT POST ====================
+@login_required
+@require_POST
+def ajax_report_post(request, post_id):
+    """Report a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        data = json.loads(request.body)
+        
+        report = PostReport.objects.create(
+            post=post,
+            user=request.user,
+            reason=data.get('reason', 'other'),
+            description=data.get('description', '')
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'report_id': report.id
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+# ==================== SAVED POSTS ====================
+@login_required
+def saved_posts(request):
+    saved_posts = PostSave.objects.filter(
+        user=request.user
+    ).select_related('post', 'post__author').order_by('-created_at')
+    
+    context = {
+        'saved_posts': saved_posts
+    }
+    return render(request, 'posts/saved_posts.html', context)
+
+# ==================== SEARCH ====================
+def search(request):
+    query = request.GET.get('q', '')
+    
+    if query:
+        posts = Post.objects.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query) |
+            Q(author__username__icontains=query)
+        ).filter(is_archived=False)[:20]
+        
+        users = User.objects.filter(
+            Q(username__icontains=query) |
+            Q(email__icontains=query)
+        )[:10]
+    else:
+        posts = []
+        users = []
+    
+    context = {
+        'query': query,
+        'posts': posts,
+        'users': users
+    }
+    return render(request, 'posts/search.html', context)
+
+# ==================== ONLINE USERS API ====================
+def online_users_api(request):
+    online_count = 0
+    for user in User.objects.filter(is_active=True):
+        if cache.get(f'online_{user.id}'):
+            online_count += 1
+    return JsonResponse({'count': online_count})
+
+# ==================== LEGACY: REPLY TO COMMENT (Page reload version) ====================
+@login_required
+def reply_to_comment(request, comment_id):
+    parent_comment = get_object_or_404(Comment, id=comment_id)
+    
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        if content:
+            comment = Comment.objects.create(
+                post=parent_comment.post,
+                author=request.user,
+                parent=parent_comment,
+                content=content
+            )
+            
+            # Create notification
+            if parent_comment.author != request.user:
+                Notification.objects.create(
+                    recipient=parent_comment.author,
+                    sender=request.user,
+                    notification_type='reply',
+                    post=parent_comment.post,
+                    comment=comment
+                )
+            
+            messages.success(request, 'Reply added!')
+    
+    return redirect('post_detail', post_id=parent_comment.post.id)
+
+# ==================== LEGACY: REACT TO COMMENT (Page reload version) ====================
+@login_required
+@require_POST
+def react_to_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    
+    existing_reaction = CommentReaction.objects.filter(
+        comment=comment,
+        user=request.user
+    ).first()
+    
+    if existing_reaction:
+        existing_reaction.delete()
+    else:
+        CommentReaction.objects.create(
+            comment=comment,
+            user=request.user
+        )
+        
+        # Create notification
+        if comment.author != request.user:
+            Notification.objects.create(
+                recipient=comment.author,
+                sender=request.user,
+                notification_type='reaction',
+                post=comment.post,
+                comment=comment
+            )
+    
+    return redirect('post_detail', post_id=comment.post.id)
+
+# ==================== LIST USERS (Admin only) ====================
+@login_required
 def list_users(request):
+    if not request.user.is_superuser:
+        return HttpResponse("Unauthorized", status=401)
+    
     users = User.objects.all().values('id', 'username', 'email', 'is_superuser', 'is_staff')
     user_list = list(users)
     
@@ -371,3 +764,7 @@ def list_users(request):
     """
     
     return HttpResponse(html)
+
+# ==================== TEST VIEW ====================
+def test_view(request):
+    return render(request, 'test.html')
