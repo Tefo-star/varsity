@@ -23,20 +23,93 @@ def university_detail(request, uni_code):
     return render(request, 'resources/university_detail.html', context)
 
 def course_detail(request, uni_code, course_code):
-    """Show modules and years for a course"""
+    """Show year levels and modules for a course"""
     university = get_object_or_404(University, code=uni_code)
     course = get_object_or_404(Course, university=university, code=course_code)
     
+    # Get year levels that have resources
+    year_levels_data = []
+    for level_num, level_name in Resource.YEAR_LEVELS:
+        resource_count = Resource.objects.filter(course=course, year_level=level_num).count()
+        if resource_count > 0:
+            year_levels_data.append({
+                'level': level_num,
+                'name': level_name,
+                'resource_count': resource_count,
+            })
+    
+    # Get top-level modules
     modules = course.modules.filter(parent_module=None)
-    years = Resource.objects.filter(course=course).values_list('year', flat=True).distinct().order_by('-year')
     
     context = {
         'university': university,
         'course': course,
+        'year_levels': year_levels_data,
         'modules': modules,
-        'years': years,
     }
     return render(request, 'resources/course_detail.html', context)
+
+def year_level_detail(request, uni_code, course_code, year_level):
+    """Show academic years and modules for a specific year level"""
+    university = get_object_or_404(University, code=uni_code)
+    course = get_object_or_404(Course, university=university, code=course_code)
+    
+    # Get year level name
+    year_level_dict = dict(Resource.YEAR_LEVELS)
+    year_level_name = year_level_dict.get(year_level, f'Year {year_level}')
+    
+    # Get resources for this year level
+    resources = Resource.objects.filter(course=course, year_level=year_level)
+    
+    # Get unique academic years
+    academic_years = resources.values_list('academic_year', flat=True).distinct().order_by('-academic_year')
+    
+    # Get modules that have resources in this year level
+    modules = Module.objects.filter(resource__in=resources).distinct()
+    
+    context = {
+        'university': university,
+        'course': course,
+        'year_level': year_level,
+        'year_level_name': year_level_name,
+        'resources': resources,
+        'academic_years': academic_years,
+        'modules': modules,
+    }
+    return render(request, 'resources/year_level_detail.html', context)
+
+def year_level_academic_detail(request, uni_code, course_code, year_level, academic_year):
+    """Show resources for a specific year level and academic year"""
+    university = get_object_or_404(University, code=uni_code)
+    course = get_object_or_404(Course, university=university, code=course_code)
+    
+    year_level_dict = dict(Resource.YEAR_LEVELS)
+    year_level_name = year_level_dict.get(year_level, f'Year {year_level}')
+    
+    resources = Resource.objects.filter(
+        course=course, 
+        year_level=year_level,
+        academic_year=academic_year
+    )
+    
+    modules = Module.objects.filter(resource__in=resources).distinct()
+    
+    # Group by module
+    resources_by_module = {}
+    for module in modules:
+        module_resources = resources.filter(module=module)
+        if module_resources.exists():
+            resources_by_module[module] = module_resources
+    
+    context = {
+        'university': university,
+        'course': course,
+        'year_level': year_level,
+        'year_level_name': year_level_name,
+        'academic_year': academic_year,
+        'resources_by_module': resources_by_module,
+    }
+    return render(request, 'resources/year_level_academic_detail.html', context)
 
 def module_detail(request, uni_code, course_code, module_id):
     """Show submodules and resources in a module"""
@@ -60,23 +133,6 @@ def module_detail(request, uni_code, course_code, module_id):
         'resources_by_type': resources_by_type,
     }
     return render(request, 'resources/module_detail.html', context)
-
-def year_detail(request, uni_code, course_code, year):
-    """Show all resources for a specific year"""
-    university = get_object_or_404(University, code=uni_code)
-    course = get_object_or_404(Course, university=university, code=course_code)
-    
-    resources = Resource.objects.filter(course=course, year=year)
-    modules = Module.objects.filter(course=course)
-    
-    context = {
-        'university': university,
-        'course': course,
-        'year': year,
-        'resources': resources,
-        'modules': modules,
-    }
-    return render(request, 'resources/year_detail.html', context)
 
 def view_pdf(request, resource_id):
     """View PDF in browser"""
@@ -115,14 +171,12 @@ def run_migrations(request):
         </html>
     """)
 
-# ==================== NEW: Force Create Tables View ====================
 def force_create_tables_view(request):
     """Force create all resources tables using management command"""
     if not settings.DEBUG:
         return HttpResponse("Not allowed", status=403)
     
     try:
-        # Run the management command
         call_command('force_create_tables')
         
         return HttpResponse("""
@@ -140,10 +194,8 @@ def force_create_tables_view(request):
                     <div class="container">
                         <h1>✅ Tables Created Successfully!</h1>
                         <div class="success">
-                            <p>All resources tables have been created:</p>
-                            <p>• University<br>• Course<br>• ResourceType<br>• Module<br>• Resource<br>• ResourceDownload</p>
+                            <p>All resources tables have been created.</p>
                         </div>
-                        <p>You can now add data through the admin panel.</p>
                         <a href="/admin/">Go to Admin →</a>
                     </div>
                 </body>

@@ -11,27 +11,29 @@
     </a>
 </div>
 
-<!-- ==================== YEARS OF STUDY FIRST ==================== -->
-<h3 class="mb-3">📅 Select Year of Study</h3>
+<!-- ==================== YEAR LEVELS (First Year, Second Year, etc.) ==================== -->
+<h3 class="mb-3">🎓 Select Year of Study</h3>
 <div class="row mb-5">
-    {% for year in years %}
+    {% for level in year_levels %}
         <div class="col-md-4 mb-3">
-            <a href="{% url 'year_detail' university.code course.code year %}" style="text-decoration: none;">
+            <a href="{% url 'year_level_detail' university.code course.code level.level %}" style="text-decoration: none;">
                 <div class="glass-card text-center">
-                    <i class="fas fa-calendar-alt fa-4x mb-3" style="color: var(--neon-purple);"></i>
-                    <h2>{{ year }}</h2>
-                    <p class="text-muted">Academic Year</p>
+                    <i class="fas fa-graduation-cap fa-4x mb-3" style="color: var(--neon-purple);"></i>
+                    <h3>{{ level.name }}</h3>
+                    <p class="text-muted">{{ level.resource_count }} resources</p>
                 </div>
             </a>
         </div>
-    {% empty %}
+    {% endfor %}
+    
+    {% if not year_levels %}
         <div class="col-12">
             <div class="glass-card text-center py-4">
-                <i class="fas fa-calendar-times fa-3x mb-2" style="color: #ff416c;"></i>
+                <i class="fas fa-graduation-cap fa-3x mb-2" style="color: #ff416c;"></i>
                 <p>No resources available yet.</p>
             </div>
         </div>
-    {% endfor %}
+    {% endif %}
 </div>
 
 <!-- ==================== MODULES SECONDARY ==================== -->

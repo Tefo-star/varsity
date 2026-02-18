@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-title">
+    <span>{{ course.code }} - {{ year_level_name }} ({{ academic_year }})</span>
+</div>
+
+<div class="mb-4">
+    <a href="{% url 'year_level_detail' university.code course.code year_level %}" class="btn-create" style="background: #6c757d;">
+        <i class="fas fa-arrow-left me-2"></i>Back to {{ year_level_name }}
+    </a>
+</div>
+
+<!-- ==================== RESOURCES BY MODULE AND TYPE ==================== -->
+{% for module, resources in resources_by_module.items %}
+    <div class="glass-card mb-4">
+        <h4 class="mb-3">
+            <i class="fas fa-folder me-2" style="color: #ffd700;"></i>
+            {{ module.name }}
+        </h4>
+        
+        <!-- Group by resource type -->
+        <div class="row">
+            {% regroup resources by resource_type.name as type_list %}
+            {% for resource_type in type_list %}
+                <div class="col-12 mb-3">
+                    <h5 class="mb-2">{{ resource_type.grouper }}s</h5>
+                    <div class="row">
+                        {% for resource in resource_type.list %}
+                            <div class="col-md-6 mb-2">
+                                <div class="d-flex align-items-center p-2" style="background: rgba(255,255,255,0.05); border-radius: 10px;">
+                                    <i class="fas fa-file-pdf fa-2x me-3" style="color: #ff416c;"></i>
+                                    <div class="flex-grow-1">
+                                        <strong>{{ resource.title }}</strong><br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-download me-1"></i>{{ resource.downloads }} downloads
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'view_pdf' resource.id %}" class="btn-create btn-sm" target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'download_resource' resource.id %}" class="btn-create btn-sm">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% empty %}
+    <div class="glass-card text-center py-5">
+        <i class="fas fa-file-pdf fa-4x mb-3" style="color: #ff416c;"></i>
+        <h3>No resources for {{ year_level_name }} ({{ academic_year }})</h3>
+    </div>
+{% endfor %}
+{% endblock %}

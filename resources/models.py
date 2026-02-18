@@ -12,7 +12,7 @@ class University(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        app_label = 'resources'  # ADDED - Explicitly set app label
+        app_label = 'resources'
         ordering = ['name']
     
     def __str__(self):
@@ -34,7 +34,7 @@ class Course(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        app_label = 'resources'  # ADDED - Explicitly set app label
+        app_label = 'resources'
         ordering = ['university', 'code']
         unique_together = ['university', 'code']
     
@@ -54,7 +54,7 @@ class Module(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        app_label = 'resources'  # ADDED - Explicitly set app label
+        app_label = 'resources'
         ordering = ['course', 'order', 'name']
     
     def __str__(self):
@@ -74,13 +74,22 @@ class ResourceType(models.Model):
     icon = models.CharField(max_length=50, default='fa-file-pdf')
     
     class Meta:
-        app_label = 'resources'  # ADDED - Explicitly set app label
+        app_label = 'resources'
     
     def __str__(self):
         return self.name
 
 class Resource(models.Model):
     """Actual files (past papers, tests, etc.)"""
+    
+    YEAR_LEVELS = [
+        (1, 'First Year'),
+        (2, 'Second Year'),
+        (3, 'Third Year'),
+        (4, 'Fourth Year'),
+        (5, 'Fifth Year'),
+    ]
+    
     SEMESTER_CHOICES = [
         (1, 'Semester 1'),
         (2, 'Semester 2'),
@@ -95,7 +104,13 @@ class Resource(models.Model):
     
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
-    year = models.IntegerField(help_text="e.g., 2024")
+    
+    # Year level (First Year, Second Year, etc.)
+    year_level = models.IntegerField(choices=YEAR_LEVELS, default=1, help_text="Academic year level")
+    
+    # Academic calendar year
+    academic_year = models.IntegerField(help_text="Calendar year e.g., 2024")
+    
     semester = models.IntegerField(choices=SEMESTER_CHOICES, default=1)
     
     file = models.FileField(upload_to='resources/%Y/%m/')
@@ -106,15 +121,15 @@ class Resource(models.Model):
     downloads = models.IntegerField(default=0)
     
     class Meta:
-        app_label = 'resources'  # ADDED - Explicitly set app label
-        ordering = ['-year', 'course', 'resource_type']
+        app_label = 'resources'
+        ordering = ['-academic_year', 'course', 'resource_type']
         indexes = [
-            models.Index(fields=['university', 'course', 'year']),
-            models.Index(fields=['-year']),
+            models.Index(fields=['university', 'course', 'year_level', 'academic_year']),
+            models.Index(fields=['-academic_year']),
         ]
     
     def __str__(self):
-        return f"{self.course.code} - {self.title} ({self.year})"
+        return f"{self.course.code} - {self.title} ({self.get_year_level_display()} {self.academic_year})"
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -122,9 +137,10 @@ class Resource(models.Model):
     
     @classmethod
     def cleanup_old_years(cls):
+        """Keep only 3 most recent academic years"""
         current_year = datetime.now().year
         allowed_years = [current_year, current_year-1, current_year-2]
-        cls.objects.exclude(year__in=allowed_years).delete()
+        cls.objects.exclude(academic_year__in=allowed_years).delete()
 
 class ResourceDownload(models.Model):
     """Track downloads"""
@@ -134,4 +150,4 @@ class ResourceDownload(models.Model):
     ip_address = models.GenericIPAddressField(blank=True, null=True)
     
     class Meta:
-        app_label = 'resources'  # ADDED - Explicitly set app label
+        app_label = 'resources'

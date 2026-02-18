@@ -38,7 +38,7 @@
     </div>
 {% endif %}
 
-<!-- Resources by Type (Tests, Quizzes, Exams, Labs) -->
+<!-- Resources by Type -->
 {% for type_name, resources in resources_by_type.items %}
     {% if resources %}
         <h4 class="mb-3">{{ type_name }}s</h4>
@@ -51,8 +51,9 @@
                             <div class="flex-grow-1">
                                 <h5>{{ resource.title }}</h5>
                                 <p class="text-muted small mb-0">
-                                    <i class="fas fa-calendar me-1"></i>{{ resource.year }}
-                                    <i class="fas fa-download ms-3 me-1"></i>{{ resource.downloads }} downloads
+                                    <i class="fas fa-calendar me-1"></i>{{ resource.academic_year }}
+                                    <i class="fas fa-graduation-cap me-1"></i>{{ resource.get_year_level_display }}
+                                    <i class="fas fa-download ms-2 me-1"></i>{{ resource.downloads }} downloads
                                 </p>
                             </div>
                             <div>
