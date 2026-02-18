@@ -34,6 +34,9 @@ urlpatterns = [
     # Force create tables using management command
     path('force-tables/', views.force_create_tables_view, name='force_tables'),
     
-    # NEW: Fix missing columns (year_level, academic_year) directly in PostgreSQL
+    # Fix missing columns (year_level, academic_year) directly in PostgreSQL
     path('fix-missing-columns/', views.fix_missing_columns, name='fix_missing_columns'),
+    
+    # NEW: Drop old year column that's causing IntegrityError
+    path('drop-old-year/', views.drop_old_year_column, name='drop_old_year'),
 ]
