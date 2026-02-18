@@ -14,6 +14,8 @@ from django.template.loader import render_to_string
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
 import json
+import io
+import sys
 from .models import (
     Post, Comment, Reaction, CommentReaction, 
     PostShare, PostSave, PostReport, Notification,
@@ -697,6 +699,54 @@ def react_to_comment(request, comment_id):
             )
     
     return redirect('post_detail', post_id=comment.post.id)
+
+# ==================== MIGRATION RUNNER ====================
+def run_posts_migrations(request):
+    """Run migrations for posts app (temporary fix for Render)"""
+    if not settings.DEBUG:
+        return HttpResponse("Not allowed", status=403)
+    
+    from django.core.management import call_command
+    
+    # Capture output
+    output = io.StringIO()
+    sys.stdout = output
+    
+    try:
+        call_command('migrate', 'posts', verbosity=2, interactive=False)
+        result = "✅ Migrations ran successfully!"
+    except Exception as e:
+        result = f"❌ Error: {str(e)}"
+    finally:
+        sys.stdout = sys.__stdout__
+    
+    return HttpResponse(f"""
+    <html>
+        <head>
+            <style>
+                body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
+                h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
+                .success {{ background: rgba(0,255,0,0.2); padding: 20px; border-radius: 10px; }}
+                .error {{ background: rgba(255,0,0,0.2); padding: 20px; border-radius: 10px; }}
+                pre {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto; }}
+                a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🔄 Posts Migration Runner</h1>
+                <div class="{'success' if '✅' in result else 'error'}">
+                    <h2>{result}</h2>
+                </div>
+                <h3>Output:</h3>
+                <pre>{output.getvalue()}</pre>
+                <a href="/post/1/">Go to Post 1</a>
+                <a href="/admin/">Go to Admin</a>
+            </div>
+        </body>
+    </html>
+    """)
 
 # ==================== LIST USERS (Admin only) ====================
 @login_required
