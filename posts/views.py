@@ -34,7 +34,7 @@ def home(request):
         'comments', 'reactions', 'shares', 'saves'
     ).annotate(
         reaction_count=Count('reactions'),
-        comment_count=Count('comments'),
+        comments_count=Count('comments'),  # Changed from comment_count to comments_count
         share_count=Count('shares'),
         save_count=Count('saves')
     )
@@ -103,7 +103,7 @@ def load_more_posts(request):
         'comments', 'reactions', 'shares', 'saves'
     ).annotate(
         reaction_count=Count('reactions'),
-        comment_count=Count('comments'),
+        comments_count=Count('comments'),  # Changed from comment_count to comments_count
         share_count=Count('shares'),
         save_count=Count('saves')
     )
