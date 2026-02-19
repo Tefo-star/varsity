@@ -227,8 +227,11 @@
     </div>
 </div>
 
+<!-- REMOVED DUPLICATE COMMENT TOGGLE JAVASCRIPT -->
+<!-- Comments are now handled by staticfiles/js/comments.js -->
+
 <script>
-// ==================== IMPROVED REACTION HANDLER ====================
+// ==================== REACTION HANDLER ====================
 document.addEventListener('DOMContentLoaded', function() {
     // Reaction data mapping
     const reactionData = {
@@ -280,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 200);
         });
         
-        // Reaction click handler - IMPROVED VERSION
+        // Reaction click handler
         hoverMenu.querySelectorAll('.reaction-option').forEach(option => {
             option.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -293,12 +296,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Disable button and show loading
                 button.disabled = true;
                 button.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem;"></span>';
-                
-                // Store current state for potential revert
-                const previousReaction = button.dataset.currentReaction || 'like';
-                
-                // Optimistic update
-                button.dataset.currentReaction = reaction;
                 
                 fetch(`/ajax/react/${postId}/`, {
                     method: 'POST',
@@ -326,14 +323,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         // Revert on failure
                         button.innerHTML = originalContent;
-                        button.dataset.currentReaction = previousReaction;
                         showNotification('Failed to add reaction', 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     button.innerHTML = originalContent;
-                    button.dataset.currentReaction = previousReaction;
                     showNotification('Network error. Please try again.', 'error');
                 })
                 .finally(() => {
@@ -341,23 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     hoverMenu.style.display = 'none';
                 });
             });
-        });
-    });
-    
-    // Comment toggle
-    document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const postId = this.dataset.postId;
-            const commentsSection = document.querySelector(`.comments-section-${postId}`);
-            
-            if (commentsSection) {
-                const isHidden = commentsSection.style.display === 'none' || commentsSection.style.display === '';
-                commentsSection.style.display = isHidden ? 'block' : 'none';
-                this.innerHTML = isHidden ? 
-                    '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Hide Comments' : 
-                    '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment';
-            }
         });
     });
 });

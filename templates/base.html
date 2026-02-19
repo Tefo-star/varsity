@@ -794,7 +794,8 @@
             }, 30000);
         });
 
-        // ==================== NOTIFICATION CHECKER ====================
+        // ==================== NOTIFICATION CHECKER (DISABLED - Fixes comment issue) ====================
+        /*
         function checkNotifications() {
             fetch('/notifications/count/')
                 .then(response => response.json())
@@ -827,6 +828,7 @@
             // Check every 30 seconds
             setInterval(checkNotifications, 30000);
         {% endif %}
+        */
 
         // ==================== ACTIVE LINK HIGHLIGHTING ====================
         document.addEventListener('DOMContentLoaded', function() {
