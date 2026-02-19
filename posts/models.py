@@ -26,6 +26,10 @@ class Post(models.Model):
     is_pinned = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     
+    # WhatsApp-style reply fields
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    reply_count = models.IntegerField(default=0)  # FIXED: default=0
+    
     class Meta:
         ordering = ['-is_pinned', '-created_at']
         indexes = [

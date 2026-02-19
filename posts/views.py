@@ -38,7 +38,7 @@ def home(request):
     posts_list = Post.objects.filter(is_archived=False).select_related(
         'author', 'author__activity'
     ).prefetch_related(
-        'comments', 'reactions', 'shares', 'saves'
+        'comments', 'reactions', 'shares', 'saves', 'replies'
     ).annotate(
         total_reactions=Count('reactions'),    # Changed from reaction_count
         comments_count=Count('comments'),       # Changed from comment_count
@@ -85,7 +85,7 @@ def load_more_posts(request):
     posts_list = Post.objects.filter(is_archived=False).select_related(
         'author', 'author__activity'
     ).prefetch_related(
-        'comments', 'reactions', 'shares', 'saves'
+        'comments', 'reactions', 'shares', 'saves', 'replies'
     ).annotate(
         total_reactions=Count('reactions'),    # Changed from reaction_count
         comments_count=Count('comments'),       # Changed from comment_count
@@ -115,6 +115,7 @@ def create_post(request):
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
+            post.reply_count = 0  # FIXED: Added this line
             
             # Auto-generate title if empty
             if not post.title:
@@ -134,7 +135,6 @@ def create_post(request):
             
             messages.success(request, 'Post created successfully! 🎉')
             
-            # For AJAX requests, return the post HTML
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 post_html = render_to_string('posts/_post_card.html', {
                     'post': post,
@@ -429,11 +429,11 @@ def ajax_add_comment(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== REPLY TO POST ====================
+# ==================== REPLY TO POST (WHATSAPP STYLE) ====================
 @login_required
 @require_POST
 def ajax_reply_to_post(request, post_id):
-    """Reply to a post (creates a new post that references the original)"""
+    """Reply to a post - creates a nested reply like WhatsApp"""
     try:
         original_post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
@@ -442,18 +442,20 @@ def ajax_reply_to_post(request, post_id):
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
         
-        # Create a new post as a reply
-        title = f"Re: {original_post.title}"
-        if len(title) > 200:
-            title = title[:197] + "..."
-            
+        # Create a reply post (nested under original)
         reply_post = Post.objects.create(
             author=request.user,
-            post_type='TEXT',  # Default to text post
-            title=title,
+            post_type='TEXT',
+            title=f"Reply to {original_post.author.username}",
             content=content.strip(),
-            is_archived=False
+            is_archived=False,
+            parent=original_post,
+            reply_count=0  # FIXED: Added this line
         )
+        
+        # Update reply count on original post
+        original_post.reply_count += 1
+        original_post.save(update_fields=['reply_count'])
         
         # Create notification for original post author
         if original_post.author != request.user:
@@ -465,18 +467,18 @@ def ajax_reply_to_post(request, post_id):
                 comment=None
             )
         
-        # Render the new post HTML
-        post_html = render_to_string('posts/_post_card.html', {
+        # Render the new reply HTML
+        reply_html = render_to_string('posts/_post_reply.html', {
             'post': reply_post,
-            'user': request.user,
-            'user_reaction': None,
-            'user_saved': False
+            'user': request.user
         }, request=request)
         
         return JsonResponse({
             'success': True,
-            'post_html': post_html,
-            'post_id': reply_post.id
+            'reply_html': reply_html,
+            'reply_id': reply_post.id,
+            'post_id': original_post.id,
+            'new_reply_count': original_post.reply_count
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
