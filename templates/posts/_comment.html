@@ -117,6 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const content = input.value.trim();
             const postId = input.dataset.postId;
             
+            console.log('📤 Submitting reply:', {parentId, content, postId});
+            
             if (!content) {
                 alert('Please enter a reply');
                 return;
@@ -129,6 +131,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            console.log('CSRF Token:', csrfToken ? 'Found' : 'MISSING');
+            
+            // Create AbortController for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
             
             fetch(`/ajax/comment/${postId}/`, {
                 method: 'POST',
@@ -139,26 +146,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ 
                     content: content, 
                     parent_id: parentId 
-                })
+                }),
+                signal: controller.signal
             })
             .then(response => {
+                clearTimeout(timeoutId);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text().then(text => {
+                        console.error('Error response body:', text.substring(0, 500));
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    });
                 }
                 return response.json();
             })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
                     location.reload();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Unknown error'));
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                 }
             })
             .catch(error => {
+                clearTimeout(timeoutId);
                 console.error('Fetch error:', error);
-                alert('Network error: ' + error.message);
+                if (error.name === 'AbortError') {
+                    alert('Request timeout - server took too long to respond');
+                } else {
+                    alert('Network error: ' + error.message);
+                }
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             });
@@ -187,7 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     countSpan.textContent = data.reaction_count;
                 }
-            });
+            })
+            .catch(error => console.error('Like error:', error));
         });
     });
     
@@ -213,7 +235,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     commentElement.remove();
                 }
-            });
+            })
+            .catch(error => console.error('Delete error:', error));
         });
     });
     

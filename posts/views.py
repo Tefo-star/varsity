@@ -17,6 +17,7 @@ from django.core.management import call_command
 import json
 import io
 import sys
+import traceback
 from .models import (
     Post, Comment, Reaction, CommentReaction,
     PostSave, PostReport, Notification,
@@ -310,35 +311,59 @@ def get_post_reactions(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== AJAX ADD COMMENT (2 LEVELS ONLY) ====================
+# ==================== AJAX ADD COMMENT (WITH DEBUG) ====================
 @login_required
 @require_POST
 def ajax_add_comment(request, post_id):
+    print(f"\n🔵 [DEBUG] ===== AJAX ADD COMMENT CALLED =====")
+    print(f"🔵 [DEBUG] post_id: {post_id}")
+    print(f"🔵 [DEBUG] User: {request.user}")
+    print(f"🔵 [DEBUG] Authenticated: {request.user.is_authenticated}")
+    print(f"🔵 [DEBUG] Method: {request.method}")
+    print(f"🔵 [DEBUG] Headers: {dict(request.headers)}")
+    
     try:
-        post = get_object_or_404(Post, id=post_id)
-        data = json.loads(request.body)
+        # Read and print raw body for debugging
+        body_str = request.body.decode('utf-8')
+        print(f"🔵 [DEBUG] Raw body: {body_str}")
+        
+        data = json.loads(body_str)
+        print(f"🔵 [DEBUG] Parsed data: {data}")
+        
         content = data.get('content')
         parent_id = data.get('parent_id')
         
+        print(f"🔵 [DEBUG] content: '{content}'")
+        print(f"🔵 [DEBUG] parent_id: {parent_id}")
+        
         if not content or not content.strip():
+            print(f"🔴 [DEBUG] Content is empty or only whitespace")
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
+        
+        print(f"🔵 [DEBUG] Looking for post with id: {post_id}")
+        post = get_object_or_404(Post, id=post_id)
+        print(f"🔵 [DEBUG] Found post: {post.id} - {post.title}")
         
         # 2 LEVELS ONLY: Comment → Reply (NO deeper nesting)
         if parent_id:
+            print(f"🔵 [DEBUG] Looking for parent comment with id: {parent_id}")
             parent_comment = Comment.objects.get(id=parent_id)
-            # If parent already has a parent, that would be level 3 - NOT ALLOWED
+            print(f"🔵 [DEBUG] Found parent comment: {parent_comment.id} by {parent_comment.author.username}")
             if parent_comment.parent:
+                print(f"🔴 [DEBUG] Parent comment already has a parent - would be level 3")
                 return JsonResponse({
                     'success': False, 
-                    'error': 'Cannot reply to a reply - 2 levels only (Comment → Reply)'
+                    'error': 'Cannot reply to a reply - 2 levels only'
                 }, status=400)
         
+        print(f"🔵 [DEBUG] Creating new comment...")
         comment = Comment.objects.create(
             post=post,
             author=request.user,
             content=content.strip(),
             parent_id=parent_id
         )
+        print(f"✅ [DEBUG] Comment created with id: {comment.id}")
         
         # Create notification
         if parent_id:
@@ -351,6 +376,7 @@ def ajax_add_comment(request, post_id):
                     post=post,
                     comment=comment
                 )
+                print(f"✅ [DEBUG] Created reply notification for {parent_comment.author.username}")
         else:
             if post.author != request.user:
                 Notification.objects.create(
@@ -360,21 +386,43 @@ def ajax_add_comment(request, post_id):
                     post=post,
                     comment=comment
                 )
+                print(f"✅ [DEBUG] Created comment notification for {post.author.username}")
         
+        print(f"🔵 [DEBUG] Rendering comment HTML...")
         comment_html = render_to_string('posts/_comment.html', {
             'comment': comment,
             'user': request.user
         }, request=request)
+        print(f"✅ [DEBUG] HTML rendered, length: {len(comment_html)}")
         
-        return JsonResponse({
+        response_data = {
             'success': True,
             'comment_html': comment_html,
             'comment_id': comment.id,
             'parent_id': parent_id,
             'comment_count': post.comment_count
-        })
+        }
+        print(f"✅ [DEBUG] Returning success response: {response_data}")
+        return JsonResponse(response_data)
+        
+    except json.JSONDecodeError as e:
+        print(f"🔴 [DEBUG] JSON Decode Error: {str(e)}")
+        print(f"🔴 [DEBUG] Raw body that caused error: {request.body.decode('utf-8', errors='ignore')}")
+        return JsonResponse({'success': False, 'error': f'Invalid JSON: {str(e)}'}, status=400)
+        
+    except Comment.DoesNotExist as e:
+        print(f"🔴 [DEBUG] Parent comment not found: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Parent comment not found'}, status=404)
+        
+    except Post.DoesNotExist as e:
+        print(f"🔴 [DEBUG] Post not found: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Post not found'}, status=404)
+        
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+        print(f"🔴 [DEBUG] Unexpected error: {str(e)}")
+        print(f"🔴 [DEBUG] Traceback:")
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 # ==================== REPLY TO POST ====================
 @login_required
