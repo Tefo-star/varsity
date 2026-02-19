@@ -32,7 +32,6 @@ def get_most_popular_reaction(counts):
 
 # ==================== HOME FEED ====================
 def home(request):
-    # Get ALL posts (including replies) ordered by most recent
     posts_list = Post.objects.filter(is_archived=False).select_related(
         'author', 'author__activity', 'parent__author', 'parent__author__activity'
     ).prefetch_related(
@@ -41,7 +40,7 @@ def home(request):
         total_reactions=Count('reactions'),
         comments_count=Count('comments'),
         total_saves=Count('saves')
-    ).order_by('-created_at')  # Most recent first - puts replies at TOP
+    ).order_by('-created_at')
 
     paginator = Paginator(posts_list, 10)
     page = request.GET.get('page', 1)
@@ -139,7 +138,9 @@ def create_post(request):
 # ==================== POST DETAIL ====================
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id, is_archived=False)
-    comments = post.comments.all().select_related('author', 'author__activity').prefetch_related('reactions')
+    comments = post.comments.filter(parent=None).select_related(
+        'author', 'author__activity'
+    ).prefetch_related('reactions')
 
     if request.method == 'POST' and request.user.is_authenticated:
         comment_form = CommentForm(request.POST)
@@ -185,7 +186,6 @@ def delete_post(request, post_id):
         return redirect('home')
 
     if request.method == 'POST':
-        # If this post is a reply, update the parent's reply_count
         if post.parent:
             parent = post.parent
             parent.reply_count = max(0, parent.reply_count - 1)
@@ -310,7 +310,7 @@ def get_post_reactions(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== AJAX ADD COMMENT (Simplified - no nested replies) ====================
+# ==================== AJAX ADD COMMENT (2 LEVELS ONLY) ====================
 @login_required
 @require_POST
 def ajax_add_comment(request, post_id):
@@ -318,34 +318,59 @@ def ajax_add_comment(request, post_id):
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         content = data.get('content')
-
+        parent_id = data.get('parent_id')
+        
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
-
+        
+        # 2 LEVELS ONLY: Comment → Reply (NO deeper nesting)
+        if parent_id:
+            parent_comment = Comment.objects.get(id=parent_id)
+            # If parent already has a parent, that would be level 3 - NOT ALLOWED
+            if parent_comment.parent:
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'Cannot reply to a reply - 2 levels only (Comment → Reply)'
+                }, status=400)
+        
         comment = Comment.objects.create(
             post=post,
             author=request.user,
-            content=content.strip()
+            content=content.strip(),
+            parent_id=parent_id
         )
-
-        if post.author != request.user:
-            Notification.objects.create(
-                recipient=post.author,
-                sender=request.user,
-                notification_type='comment',
-                post=post,
-                comment=comment
-            )
-
+        
+        # Create notification
+        if parent_id:
+            parent_comment = Comment.objects.get(id=parent_id)
+            if parent_comment.author != request.user:
+                Notification.objects.create(
+                    recipient=parent_comment.author,
+                    sender=request.user,
+                    notification_type='reply',
+                    post=post,
+                    comment=comment
+                )
+        else:
+            if post.author != request.user:
+                Notification.objects.create(
+                    recipient=post.author,
+                    sender=request.user,
+                    notification_type='comment',
+                    post=post,
+                    comment=comment
+                )
+        
         comment_html = render_to_string('posts/_comment.html', {
             'comment': comment,
             'user': request.user
         }, request=request)
-
+        
         return JsonResponse({
             'success': True,
             'comment_html': comment_html,
             'comment_id': comment.id,
+            'parent_id': parent_id,
             'comment_count': post.comment_count
         })
     except Exception as e:
@@ -363,7 +388,6 @@ def ajax_reply_to_post(request, post_id):
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
 
-        # Create a reply post with ABSOLUTELY NO TITLE
         reply = Post.objects.create(
             author=request.user,
             post_type='TEXT',
@@ -374,11 +398,9 @@ def ajax_reply_to_post(request, post_id):
             reply_count=0
         )
 
-        # Update reply count on original
         original.reply_count += 1
         original.save(update_fields=['reply_count'])
 
-        # Create notification
         if original.author != request.user:
             Notification.objects.create(
                 recipient=original.author,
@@ -387,7 +409,6 @@ def ajax_reply_to_post(request, post_id):
                 post=original
             )
 
-        # Render the new reply
         reply_html = render_to_string('posts/_post_card.html', {
             'post': reply,
             'user': request.user,

@@ -1,6 +1,6 @@
 {% load static %}
 
-<div class="comment mb-2 p-2" id="comment-{{ comment.id }}" style="background: rgba(0,0,0,0.02); border-radius: 10px;">
+<div class="comment mb-2" id="comment-{{ comment.id }}" style="margin-left: {% if comment.parent %}30px{% else %}0{% endif %};">
     <div class="d-flex">
         <div class="profile-avatar me-2" style="width: 28px; height: 28px; font-size: 0.8rem;">
             {% if comment.author.activity.profile_picture %}
@@ -14,30 +14,82 @@
                 <strong class="small">{{ comment.author.username }}</strong>
                 {% if comment.author.activity.university %}
                     <span class="uni-badge uni-{{ comment.author.activity.university }}" style="font-size: 0.6rem; padding: 2px 6px;">
-                        {% if comment.author.activity.university == 'ub' %}UB{% endif %}
-                        {% if comment.author.activity.university == 'buan' %}BUAN{% endif %}
-                        {% if comment.author.activity.university == 'botho' %}BOTHO{% endif %}
-                        {% if comment.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
-                        {% if comment.author.activity.university == 'baisago' %}ISAGO{% endif %}
-                        {% if comment.author.activity.university == 'biust' %}BIUST{% endif %}
+                        {{ comment.author.activity.university|upper }}
                     </span>
                 {% endif %}
                 <span class="text-muted small">{{ comment.created_at|timesince }} ago</span>
                 
-                <!-- Delete button for own comments -->
                 {% if user == comment.author %}
                     <button class="btn btn-link p-0 ms-auto text-danger delete-comment-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem;">
                         <i class="fas fa-trash"></i>
                     </button>
                 {% endif %}
             </div>
+            
             <p class="mb-1 small">{{ comment.content }}</p>
             
             <!-- Comment actions -->
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-link p-0 comment-like-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; color: #718096; text-decoration: none;">
+                <button class="btn btn-link p-0 comment-like-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; color: #718096;">
                     <i class="fas fa-heart me-1" style="font-size: 0.7rem;"></i> Like <span class="comment-like-count">{{ comment.get_reaction_counts.like }}</span>
                 </button>
+                
+                <!-- ONLY SHOW REPLY BUTTON FOR TOP-LEVEL COMMENTS (Level 1) -->
+                {% if not comment.parent %}
+                    <button class="btn btn-link p-0 reply-to-comment-btn" data-comment-id="{{ comment.id }}" data-post-id="{{ comment.post.id }}" style="font-size: 0.8rem; color: #718096;">
+                        <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i> Reply
+                    </button>
+                {% endif %}
+                
+                {% if comment.reply_count > 0 %}
+                    <button class="btn btn-link p-0 view-replies-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; color: #667eea;">
+                        View {{ comment.reply_count }} repl{{ comment.reply_count|pluralize:"y,ies" }}
+                    </button>
+                {% endif %}
+            </div>
+            
+            <!-- Reply form - ONLY FOR TOP-LEVEL COMMENTS -->
+            {% if not comment.parent %}
+                <div class="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm reply-input" placeholder="Write a reply..." data-parent-id="{{ comment.id }}" data-post-id="{{ comment.post.id }}">
+                        <button class="btn btn-primary btn-sm submit-reply-btn" data-parent-id="{{ comment.id }}">Reply</button>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Container for replies (Level 2 only) -->
+            <div class="replies-{{ comment.id }}" style="display: {% if comment.reply_count > 0 %}block{% else %}none{% endif %}; margin-top: 10px;">
+                {% for reply in comment.replies.all %}
+                    <div class="comment mb-2" id="comment-{{ reply.id }}" style="margin-left: 30px;">
+                        <div class="d-flex">
+                            <div class="profile-avatar me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                {% if reply.author.activity.profile_picture %}
+                                    <img src="{{ reply.author.activity.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                {% else %}
+                                    {{ reply.author.username|first|upper }}
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <strong class="small">{{ reply.author.username }}</strong>
+                                    <span class="text-muted small">{{ reply.created_at|timesince }} ago</span>
+                                    {% if user == reply.author %}
+                                        <button class="btn btn-link p-0 ms-auto text-danger delete-comment-btn" data-comment-id="{{ reply.id }}" style="font-size: 0.7rem;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <p class="mb-1 small">{{ reply.content }}</p>
+                                <div class="d-flex align-items-center">
+                                    <button class="btn btn-link p-0 comment-like-btn" data-comment-id="{{ reply.id }}" style="font-size: 0.7rem; color: #718096;">
+                                        <i class="fas fa-heart me-1" style="font-size: 0.6rem;"></i> Like <span class="comment-like-count">{{ reply.get_reaction_counts.like }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         </div>
     </div>
