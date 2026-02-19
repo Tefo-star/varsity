@@ -44,7 +44,7 @@ def home(request):
         comments_count=Count('comments'),       # Changed from comment_count
         total_shares=Count('shares'),           # Changed from share_count
         total_saves=Count('saves')              # Changed from save_count
-    )
+    ).order_by('-created_at')  # Most recent first
     
     # Pagination for infinite scroll
     paginator = Paginator(posts_list, 10)  # 10 posts per page
@@ -91,7 +91,7 @@ def load_more_posts(request):
         comments_count=Count('comments'),       # Changed from comment_count
         total_shares=Count('shares'),           # Changed from share_count
         total_saves=Count('saves')              # Changed from save_count
-    )
+    ).order_by('-created_at')  # Most recent first
     
     paginator = Paginator(posts_list, 10)
     posts = paginator.get_page(page)
@@ -134,6 +134,7 @@ def create_post(request):
             
             messages.success(request, 'Post created successfully! 🎉')
             
+            # For AJAX requests, return the post HTML
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 post_html = render_to_string('posts/_post_card.html', {
                     'post': post,
