@@ -1,10 +1,14 @@
 {% load static %}
 
-<div class="comment mb-2" id="comment-{{ comment.id }}" style="margin-left: {% if comment.parent %}30px{% else %}0{% endif %};">
+{% if comment.parent %}
+    <div class="comment mb-2" id="comment-{{ comment.id }}" style="margin-left: 30px;">
+{% else %}
+    <div class="comment mb-2" id="comment-{{ comment.id }}" style="margin-left: 0;">
+{% endif %}
     <div class="d-flex">
-        <div class="profile-avatar me-2" style="width: 28px; height: 28px; font-size: 0.8rem;">
+        <div class="profile-avatar me-2" style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem; overflow: hidden;">
             {% if comment.author.activity.profile_picture %}
-                <img src="{{ comment.author.activity.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="{{ comment.author.activity.profile_picture.url }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
             {% else %}
                 {{ comment.author.username|first|upper }}
             {% endif %}
@@ -13,7 +17,7 @@
             <div class="d-flex align-items-center gap-2 mb-1">
                 <strong class="small">{{ comment.author.username }}</strong>
                 {% if comment.author.activity.university %}
-                    <span class="uni-badge uni-{{ comment.author.activity.university }}" style="font-size: 0.6rem; padding: 2px 6px;">
+                    <span class="uni-badge uni-{{ comment.author.activity.university }}" style="font-size: 0.6rem; padding: 2px 6px; border-radius: 20px; background: rgba(102, 126, 234, 0.1); color: #4a5568; display: inline-block;">
                         {% if comment.author.activity.university == 'ub' %}UB{% endif %}
                         {% if comment.author.activity.university == 'buan' %}BUAN{% endif %}
                         {% if comment.author.activity.university == 'botho' %}BOTHO{% endif %}
@@ -25,7 +29,7 @@
                 <span class="text-muted small">{{ comment.created_at|timesince }} ago</span>
                 
                 {% if user == comment.author %}
-                    <button class="btn btn-link p-0 ms-auto text-danger delete-comment-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem;">
+                    <button class="btn btn-link p-0 ms-auto text-danger delete-comment-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; background: none; border: none; color: #dc3545; padding: 0; text-decoration: none;">
                         <i class="fas fa-trash"></i>
                     </button>
                 {% endif %}
@@ -35,37 +39,36 @@
             
             <!-- Comment actions -->
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-link p-0 comment-like-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; color: #718096;">
+                <button class="btn btn-link p-0 comment-like-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; background: none; border: none; color: #718096; padding: 0; text-decoration: none;">
                     <i class="fas fa-heart me-1" style="font-size: 0.7rem;"></i> Like <span class="comment-like-count">{{ comment.get_reaction_counts.like }}</span>
                 </button>
                 
-                <!-- REPLY BUTTON - FIXED with proper onclick for testing -->
+                <!-- REPLY BUTTON -->
                 <button class="btn btn-link p-0 reply-to-comment-btn" 
                         data-comment-id="{{ comment.id }}" 
                         data-post-id="{{ comment.post.id }}"
-                        onclick="showReplyForm('{{ comment.id }}')"
-                        style="font-size: 0.8rem; color: #718096;">
+                        style="font-size: 0.8rem; background: none; border: none; color: #718096; padding: 0; text-decoration: none;">
                     <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i> Reply
                 </button>
                 
                 {% if comment.reply_count > 0 %}
-                    <button class="btn btn-link p-0 view-replies-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; color: #667eea;">
+                    <button class="btn btn-link p-0 view-replies-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; background: none; border: none; color: #667eea; padding: 0; text-decoration: none;">
                         View {{ comment.reply_count }} repl{{ comment.reply_count|pluralize:"y,ies" }}
                     </button>
                 {% endif %}
             </div>
             
-            <!-- Reply form - FIXED with proper ID and styling -->
-            <div id="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
+            <!-- Reply form -->
+            <div class="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
                 <div class="d-flex gap-2">
                     <input type="text" class="form-control form-control-sm reply-input" 
-                           id="reply-input-{{ comment.id }}"
                            placeholder="Write a reply..." 
                            data-parent-id="{{ comment.id }}" 
-                           data-post-id="{{ comment.post.id }}">
+                           data-post-id="{{ comment.post.id }}"
+                           style="border-radius: 20px; padding: 8px 15px; border: 1px solid #e2e8f0; width: 100%;">
                     <button class="btn btn-primary btn-sm submit-reply-btn" 
                             data-parent-id="{{ comment.id }}"
-                            onclick="submitReply('{{ comment.id }}', '{{ comment.post.id }}')">
+                            style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 20px; color: white; font-weight: 500;">
                         Reply
                     </button>
                 </div>
@@ -82,54 +85,148 @@
 </div>
 
 <script>
-// DIRECT FUNCTIONS - NO EVENT LISTENER ISSUES
-function showReplyForm(commentId) {
-    document.getElementById(`reply-form-${commentId}`).style.display = 'block';
-}
-
-function submitReply(commentId, postId) {
-    const input = document.getElementById(`reply-input-${commentId}`);
-    const content = input.value.trim();
-    const btn = event.target;
-    
-    if (!content) {
-        alert('Please enter a reply');
-        return;
-    }
-    
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    
-    // Get CSRF token
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-    
-    fetch(`/ajax/comment/${postId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ 
-            content: content, 
-            parent_id: commentId 
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Reload to show the new reply
-            location.reload();
-        } else {
-            alert(data.error || 'Error posting reply');
-            btn.disabled = false;
-            btn.innerHTML = 'Reply';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Network error');
-        btn.disabled = false;
-        btn.innerHTML = 'Reply';
+document.addEventListener('DOMContentLoaded', function() {
+    // Reply button functionality
+    document.querySelectorAll('.reply-to-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const commentId = this.dataset.commentId;
+            const replyForm = document.querySelector(`.reply-form-${commentId}`);
+            if (replyForm) {
+                replyForm.style.display = 'block';
+            }
+        });
     });
-}
+    
+    // Submit reply functionality
+    document.querySelectorAll('.submit-reply-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const parentId = this.dataset.parentId;
+            const input = document.querySelector(`.reply-input[data-parent-id="${parentId}"]`);
+            const content = input.value.trim();
+            const postId = input.dataset.postId;
+            
+            if (!content) {
+                alert('Please enter a reply');
+                return;
+            }
+            
+            // Disable button
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            
+            fetch(`/ajax/comment/${postId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ 
+                    content: content, 
+                    parent_id: parentId 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.error || 'Error posting reply');
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        });
+    });
+    
+    // Like comment functionality
+    document.querySelectorAll('.comment-like-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const commentId = this.dataset.commentId;
+            const countSpan = this.querySelector('.comment-like-count');
+            
+            fetch(`/ajax/comment/${commentId}/react/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.action === 'added') {
+                        this.classList.add('active');
+                    } else {
+                        this.classList.remove('active');
+                    }
+                    countSpan.textContent = data.reaction_count;
+                }
+            });
+        });
+    });
+    
+    // Delete comment functionality
+    document.querySelectorAll('.delete-comment-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (!confirm('Delete this comment?')) return;
+            
+            const commentId = this.dataset.commentId;
+            const commentElement = document.getElementById(`comment-${commentId}`);
+            
+            fetch(`/ajax/comment/${commentId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    commentElement.remove();
+                }
+            });
+        });
+    });
+    
+    // View replies toggle
+    document.querySelectorAll('.view-replies-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const commentId = this.dataset.commentId;
+            const repliesDiv = document.querySelector(`.replies-${commentId}`);
+            
+            if (repliesDiv.style.display === 'none') {
+                repliesDiv.style.display = 'block';
+                this.textContent = 'Hide replies';
+            } else {
+                repliesDiv.style.display = 'none';
+                this.textContent = `View ${repliesDiv.children.length} repl${repliesDiv.children.length === 1 ? 'y' : 'ies'}`;
+            }
+        });
+    });
+});
 </script>
