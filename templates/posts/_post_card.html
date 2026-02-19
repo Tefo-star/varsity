@@ -130,7 +130,7 @@
         </div>
     </div>
 
-    <!-- Action Bar - SHARE BUTTON REMOVED -->
+    <!-- Action Bar - SHARE REPLACED WITH REPLY BUTTON -->
     <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3">
         <!-- Like Button with Hover Menu -->
         <div class="reaction-container" style="position: relative;">
@@ -157,17 +157,36 @@
             </div>
         </div>
         
+        <!-- Comment Button - Shows comments on the post -->
         <button class="btn btn-link text-decoration-none comment-toggle-btn" data-post-id="{{ post.id }}" style="color: #4a5568; padding: 0; border: none; background: none;">
             <i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment
         </button>
         
-        <!-- SHARE BUTTON REMOVED - Now using Reply feature -->
+        <!-- REPLY BUTTON (replaces Share) -->
+        <button class="btn btn-link text-decoration-none reply-to-post-btn" data-post-id="{{ post.id }}" style="color: #4a5568; padding: 0; border: none; background: none;">
+            <i class="fas fa-reply me-1" style="color: #48bb78;"></i> Reply
+        </button>
         
         <button class="btn btn-link text-decoration-none save-btn {% if user_saved %}active{% endif %}" 
                 data-post-id="{{ post.id }}" 
                 style="color: {% if user_saved %}#ecc94b{% else %}#4a5568{% endif %}; padding: 0; border: none; background: none;">
             <i class="fas fa-bookmark me-1" style="color: {% if user_saved %}#ecc94b{% else %}#718096{% endif %};"></i> Save
         </button>
+    </div>
+
+    <!-- Reply Form for Post (Hidden by default) -->
+    <div class="reply-to-post-form-{{ post.id }}" style="display: none; margin-bottom: 15px;">
+        <div class="d-flex gap-2">
+            <input type="text" class="form-control reply-to-post-input" 
+                   placeholder="Reply to this post..." 
+                   data-post-id="{{ post.id }}"
+                   style="border-radius: 20px;">
+            <button class="btn btn-create submit-reply-to-post-btn" 
+                    data-post-id="{{ post.id }}"
+                    style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none;">
+                Post Reply
+            </button>
+        </div>
     </div>
 
     <!-- Comments Section -->

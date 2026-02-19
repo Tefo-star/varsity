@@ -5,7 +5,8 @@
     function initCommentFeatures() {
         initCommentToggles();
         initCommentSubmits();
-        initReplyFeatures(); // Added reply features
+        initReplyFeatures(); // Comment reply features
+        initPostReplyFeatures(); // Post reply features (NEW)
     }
     
     function initCommentToggles() {
@@ -25,6 +26,110 @@
             input.removeEventListener('keypress', handleCommentKeyPress);
             input.addEventListener('keypress', handleCommentKeyPress);
         });
+    }
+    
+    // ==================== REPLY TO POST (NEW) ====================
+    function initPostReplyFeatures() {
+        // Reply button for posts
+        document.querySelectorAll('.reply-to-post-btn').forEach(btn => {
+            btn.removeEventListener('click', handlePostReplyToggle);
+            btn.addEventListener('click', handlePostReplyToggle);
+        });
+        
+        // Submit reply for posts
+        document.querySelectorAll('.submit-reply-to-post-btn').forEach(btn => {
+            btn.removeEventListener('click', handlePostReplySubmit);
+            btn.addEventListener('click', handlePostReplySubmit);
+        });
+        
+        // Enter key for post reply input
+        document.querySelectorAll('.reply-to-post-input').forEach(input => {
+            input.removeEventListener('keypress', handlePostReplyKeyPress);
+            input.addEventListener('keypress', handlePostReplyKeyPress);
+        });
+    }
+    
+    function handlePostReplyToggle(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const btn = e.currentTarget;
+        const postId = btn.dataset.postId;
+        const replyForm = document.querySelector(`.reply-to-post-form-${postId}`);
+        
+        if (replyForm) {
+            if (replyForm.style.display === 'none' || replyForm.style.display === '') {
+                replyForm.style.display = 'block';
+                replyForm.querySelector('.reply-to-post-input').focus();
+            } else {
+                replyForm.style.display = 'none';
+            }
+        }
+    }
+    
+    function handlePostReplySubmit(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const btn = e.currentTarget;
+        const postId = btn.dataset.postId;
+        const input = document.querySelector(`.reply-to-post-input[data-post-id="${postId}"]`);
+        const content = input.value.trim();
+        
+        if (!content) {
+            showNotification('Please enter a reply', 'error');
+            return;
+        }
+        
+        // Disable button
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        
+        fetch(`/ajax/post/${postId}/reply/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ 
+                content: content
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add the new reply post to the feed (at the top)
+                const postsContainer = document.getElementById('posts-container');
+                postsContainer.insertAdjacentHTML('afterbegin', data.post_html);
+                
+                // Clear input and hide form
+                input.value = '';
+                document.querySelector(`.reply-to-post-form-${postId}`).style.display = 'none';
+                
+                showNotification('Reply posted!', 'success');
+            } else {
+                showNotification('Error: ' + (data.error || 'Failed'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error', 'error');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+    
+    function handlePostReplyKeyPress(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const input = e.currentTarget;
+            const postId = input.dataset.postId;
+            const submitBtn = document.querySelector(`.submit-reply-to-post-btn[data-post-id="${postId}"]`);
+            if (submitBtn) submitBtn.click();
+        }
     }
     
     // ==================== REPLY TO COMMENT (WHATSAPP STYLE) ====================
