@@ -84,8 +84,8 @@
         </div>
     </div>
 
-    <!-- Post Title (only if user actually typed one) -->
-    {% if post.title and post.title != post.content and post.title != post.content|truncatechars:50 %}
+    <!-- Post Title - ONLY show for original posts, NEVER for replies -->
+    {% if post.title and not post.parent and post.title != post.content and post.title != post.content|truncatechars:50 %}
         <h3 class="h5 fw-bold mb-2">
             <a href="{% url 'post_detail' post.id %}" class="text-dark text-decoration-none">{{ post.title }}</a>
         </h3>
