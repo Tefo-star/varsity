@@ -99,19 +99,21 @@
                 {% with counts=post.get_reaction_counts %}
                     {% with total=counts.like|add:counts.love|add:counts.haha|add:counts.wow|add:counts.sad|add:counts.angry %}
                         {% if total > 0 %}
-                            {% if counts.angry >= counts.like and counts.angry >= counts.love and counts.angry >= counts.haha and counts.angry >= counts.wow and counts.angry >= counts.sad %}
-                                <i class="fas fa-angry me-1" style="color: #e53e3e;"></i>
-                            {% elif counts.sad >= counts.like and counts.sad >= counts.love and counts.sad >= counts.haha and counts.sad >= counts.wow %}
-                                <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>
-                            {% elif counts.wow >= counts.like and counts.wow >= counts.love and counts.wow >= counts.haha %}
-                                <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>
-                            {% elif counts.haha >= counts.like and counts.haha >= counts.love %}
-                                <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>
-                            {% elif counts.love >= counts.like %}
-                                <i class="fas fa-heart me-1" style="color: #f56565;"></i>
-                            {% else %}
-                                <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>
-                            {% endif %}
+                            {% with most_popular=counts.like %}
+                                {% if counts.angry >= counts.like and counts.angry >= counts.love and counts.angry >= counts.haha and counts.angry >= counts.wow and counts.angry >= counts.sad %}
+                                    <i class="fas fa-angry me-1" style="color: #e53e3e;"></i>
+                                {% elif counts.sad >= counts.like and counts.sad >= counts.love and counts.sad >= counts.haha and counts.sad >= counts.wow %}
+                                    <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>
+                                {% elif counts.wow >= counts.like and counts.wow >= counts.love and counts.wow >= counts.haha %}
+                                    <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>
+                                {% elif counts.haha >= counts.like and counts.haha >= counts.love %}
+                                    <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>
+                                {% elif counts.love >= counts.like %}
+                                    <i class="fas fa-heart me-1" style="color: #f56565;"></i>
+                                {% else %}
+                                    <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>
+                                {% endif %}
+                            {% endwith %}
                             <span>{{ total }}</span>
                         {% else %}
                             <i class="fas fa-thumbs-up me-1" style="color: #718096;"></i>
@@ -226,39 +228,77 @@
 </div>
 
 <script>
-// ==================== REACTION HOVER MENU ====================
+// ==================== IMPROVED REACTION HANDLER ====================
 document.addEventListener('DOMContentLoaded', function() {
+    // Reaction data mapping
+    const reactionData = {
+        'love': { icon: 'fa-heart', text: 'Love', color: '#f56565' },
+        'haha': { icon: 'fa-laugh', text: 'Haha', color: '#ecc94b' },
+        'wow': { icon: 'fa-surprise', text: 'Wow', color: '#9f7aea' },
+        'sad': { icon: 'fa-sad-tear', text: 'Sad', color: '#4299e1' },
+        'angry': { icon: 'fa-angry', text: 'Angry', color: '#e53e3e' },
+        'like': { icon: 'fa-thumbs-up', text: 'Like', color: '#3182ce' }
+    };
+    
     // Hover menu functionality
     document.querySelectorAll('.reaction-container').forEach(container => {
         const likeBtn = container.querySelector('.main-like-btn');
         const hoverMenu = container.querySelector('.reaction-hover-menu');
         let hoverTimer;
+        let hideTimer;
         
+        if (!likeBtn || !hoverMenu) return;
+        
+        // Mouse enter like button
         likeBtn.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimer);
             clearTimeout(hoverTimer);
             hoverTimer = setTimeout(() => {
                 hoverMenu.style.display = 'block';
-            }, 500);
+            }, 400);
         });
         
+        // Mouse leave like button
         likeBtn.addEventListener('mouseleave', () => {
             clearTimeout(hoverTimer);
-            setTimeout(() => {
+            hideTimer = setTimeout(() => {
                 if (!hoverMenu.matches(':hover')) {
                     hoverMenu.style.display = 'none';
                 }
             }, 200);
         });
         
-        hoverMenu.addEventListener('mouseleave', () => {
-            hoverMenu.style.display = 'none';
+        // Mouse enter menu
+        hoverMenu.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimer);
         });
         
-        // Reaction click
+        // Mouse leave menu
+        hoverMenu.addEventListener('mouseleave', () => {
+            hideTimer = setTimeout(() => {
+                hoverMenu.style.display = 'none';
+            }, 200);
+        });
+        
+        // Reaction click handler - IMPROVED VERSION
         hoverMenu.querySelectorAll('.reaction-option').forEach(option => {
-            option.addEventListener('click', function() {
+            option.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
                 const postId = this.dataset.postId;
                 const reaction = this.dataset.reaction;
+                const button = document.querySelector(`.main-like-btn[data-post-id="${postId}"]`);
+                const originalContent = button.innerHTML;
+                
+                // Disable button and show loading
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem;"></span>';
+                
+                // Store current state for potential revert
+                const previousReaction = button.dataset.currentReaction || 'like';
+                
+                // Optimistic update
+                button.dataset.currentReaction = reaction;
                 
                 fetch(`/ajax/react/${postId}/`, {
                     method: 'POST',
@@ -271,24 +311,114 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        // Update button based on user's reaction
+                        if (data.user_reaction) {
+                            const r = reactionData[data.user_reaction];
+                            button.innerHTML = `<i class="fas ${r.icon} me-1" style="color: ${r.color};"></i> ${r.text} <span class="like-count" style="color: #718096;">${data.counts[data.user_reaction]}</span>`;
+                            button.style.color = r.color;
+                        } else {
+                            button.innerHTML = `<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> Like <span class="like-count" style="color: #718096;">${data.counts.like}</span>`;
+                            button.style.color = '#718096';
+                        }
+                        
+                        // Update reaction counter
+                        updateReactionCounter(postId, data.counts);
+                    } else {
+                        // Revert on failure
+                        button.innerHTML = originalContent;
+                        button.dataset.currentReaction = previousReaction;
+                        showNotification('Failed to add reaction', 'error');
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    button.innerHTML = originalContent;
+                    button.dataset.currentReaction = previousReaction;
+                    showNotification('Network error. Please try again.', 'error');
+                })
+                .finally(() => {
+                    button.disabled = false;
+                    hoverMenu.style.display = 'none';
                 });
-                
-                hoverMenu.style.display = 'none';
             });
         });
     });
     
     // Comment toggle
     document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
             const postId = this.dataset.postId;
             const commentsSection = document.querySelector(`.comments-section-${postId}`);
-            commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+            
+            if (commentsSection) {
+                const isHidden = commentsSection.style.display === 'none' || commentsSection.style.display === '';
+                commentsSection.style.display = isHidden ? 'block' : 'none';
+                this.innerHTML = isHidden ? 
+                    '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Hide Comments' : 
+                    '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment';
+            }
         });
     });
 });
+
+// ==================== UPDATE REACTION COUNTER ====================
+function updateReactionCounter(postId, counts) {
+    const counterSpan = document.querySelector(`.reaction-counter[data-post-id="${postId}"]`);
+    if (!counterSpan) return;
+    
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    
+    if (total === 0) {
+        counterSpan.innerHTML = '<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> <span>0</span>';
+        return;
+    }
+    
+    // Find most popular reaction
+    let mostPopular = 'like';
+    let highestCount = 0;
+    for (const [type, count] of Object.entries(counts)) {
+        if (count > highestCount) {
+            highestCount = count;
+            mostPopular = type;
+        }
+    }
+    
+    const icons = {
+        'like': '<i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>',
+        'love': '<i class="fas fa-heart me-1" style="color: #f56565;"></i>',
+        'haha': '<i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>',
+        'wow': '<i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>',
+        'sad': '<i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>',
+        'angry': '<i class="fas fa-angry me-1" style="color: #e53e3e;"></i>'
+    };
+    
+    counterSpan.innerHTML = icons[mostPopular] + ' <span>' + total + '</span>';
+}
+
+// ==================== SHOW NOTIFICATION ====================
+function showNotification(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = type === 'success' ? '#48bb78' : '#f56565';
+    toast.style.color = 'white';
+    toast.style.padding = '10px 20px';
+    toast.style.borderRadius = '50px';
+    toast.style.boxShadow = '0 5px 20px rgba(0,0,0,0.2)';
+    toast.style.zIndex = '9999';
+    toast.style.animation = 'slideUp 0.3s ease';
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideDown 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
 // ==================== DELETE POST ====================
 function confirmDelete(postId) {
@@ -302,14 +432,14 @@ function confirmDelete(postId) {
         .then(response => {
             if (response.ok) {
                 document.querySelector(`.post-card[data-post-id="${postId}"]`).remove();
-                alert('Post deleted successfully!');
+                showNotification('Post deleted successfully!');
             } else {
-                alert('Error deleting post');
+                showNotification('Error deleting post', 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error deleting post');
+            showNotification('Error deleting post', 'error');
         });
     }
 }
@@ -322,6 +452,7 @@ function showReactions(postId) {
     
     listContainer.innerHTML = '';
     loadingSpinner.style.display = 'block';
+    modal.show();
     
     fetch(`/ajax/post/${postId}/reactions/`)
         .then(response => response.json())
@@ -355,24 +486,37 @@ function showReactions(postId) {
                 
                 html += '</div>';
                 listContainer.innerHTML = html;
-                modal.show();
             }
         })
         .catch(error => {
             console.error('Error:', error);
             loadingSpinner.style.display = 'none';
             listContainer.innerHTML = '<p class="text-center text-danger py-3">Error loading reactions</p>';
-            modal.show();
         });
 }
 
 // ==================== IMAGE MODAL ====================
 function openImageModal(imageUrl) {
-    // This function should be defined in your base template
     if (typeof window.openImageModal === 'function') {
         window.openImageModal(imageUrl);
     }
 }
+
+// Add slideDown animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+        to {
+            opacity: 0;
+            transform: translate(-50%, 20px);
+        }
+    }
+`;
+document.head.appendChild(style);
 </script>
 
 <style>
@@ -414,5 +558,10 @@ function openImageModal(imageUrl) {
 
 .dropdown-item.text-danger:hover {
     background-color: #fee2e2;
+}
+
+.reaction-container .main-like-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 </style>

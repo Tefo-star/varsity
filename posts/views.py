@@ -25,6 +25,13 @@ from .models import (
 )
 from .forms import PostForm, CommentForm
 
+# ==================== HELPER FUNCTIONS ====================
+def get_most_popular_reaction(counts):
+    """Return the reaction type with the highest count"""
+    if not counts or sum(counts.values()) == 0:
+        return 'like'
+    return max(counts, key=counts.get)
+
 # ==================== HOME FEED WITH INFINITE SCROLL ====================
 def home(request):
     # Get all posts with annotations - ALL RENAMED to avoid property conflicts
