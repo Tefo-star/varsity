@@ -4,7 +4,7 @@ from .models import Post, Comment
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['post_type', 'title', 'content', 'image', 'video']  # Changed from video_url to video
+        fields = ['post_type', 'title', 'content', 'image', 'video']
         widgets = {
             'content': forms.Textarea(attrs={
                 'rows': 5,
@@ -17,7 +17,7 @@ class PostForm(forms.ModelForm):
                 'placeholder': 'Title (optional)',
                 'maxlength': 200
             }),
-            'video': forms.FileInput(attrs={  # Changed from URLInput to FileInput
+            'video': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': 'video/*'
             }),
@@ -35,3 +35,17 @@ class PostForm(forms.ModelForm):
         self.fields['title'].required = False
         self.fields['video'].required = False
         self.fields['image'].required = False
+
+# ===== ADD THIS MISSING COMMENTFORM =====
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'rows': 2,
+                'class': 'form-control',
+                'placeholder': 'Write a comment...',
+                'maxlength': 1000
+            }),
+        }
