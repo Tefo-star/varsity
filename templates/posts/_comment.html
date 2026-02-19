@@ -76,15 +76,17 @@
                 
                 <!-- Reply Form -->
                 <div class="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
-                    <div class="input-group">
-                        <input type="text" class="form-control form-control-sm reply-input" 
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control reply-input" 
                                placeholder="Write a reply..." 
                                data-parent-id="{{ comment.id }}"
                                data-post-id="{{ comment.post.id }}"
-                               style="border-radius: 20px 0 0 20px;">
-                        <button class="btn btn-sm btn-create submit-reply-btn" 
+                               style="border-radius: 20px 0 0 20px; border: 1px solid #e2e8f0;">
+                        <button class="btn btn-create submit-reply-btn" 
                                 data-parent-id="{{ comment.id }}"
-                                style="border-radius: 0 20px 20px 0;">Reply</button>
+                                style="border-radius: 0 20px 20px 0; padding: 5px 15px;">
+                            Reply
+                        </button>
                     </div>
                 </div>
                 
@@ -98,80 +100,3 @@
         </div>
     </div>
 </div>
-
-<script>
-// Reply button handler
-document.querySelectorAll('.reply-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const commentId = this.dataset.commentId;
-        document.querySelector(`.reply-form-${commentId}`).style.display = 'block';
-    });
-});
-
-// Submit reply handler
-document.querySelectorAll('.submit-reply-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const parentId = this.dataset.parentId;
-        const input = document.querySelector(`.reply-input[data-parent-id="${parentId}"]`);
-        const content = input.value.trim();
-        const postId = input.dataset.postId;
-        
-        if (!content) return;
-        
-        this.disabled = true;
-        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-        
-        fetch(`/ajax/comment/${postId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ content: content, parent_id: parentId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const repliesContainer = document.querySelector(`.replies-${parentId}`);
-                repliesContainer.insertAdjacentHTML('beforeend', data.comment_html);
-                repliesContainer.style.display = 'block';
-                input.value = '';
-                document.querySelector(`.reply-form-${parentId}`).style.display = 'none';
-                
-                // Update reply count
-                const viewBtn = document.querySelector(`.view-replies-btn[data-comment-id="${parentId}"]`);
-                if (viewBtn) {
-                    const currentCount = parseInt(viewBtn.textContent.match(/\d+/)[0]) || 0;
-                    viewBtn.textContent = `View ${currentCount + 1} repl${currentCount + 1 === 1 ? 'y' : 'ies'}`;
-                }
-            }
-        })
-        .finally(() => {
-            this.disabled = false;
-            this.innerHTML = 'Reply';
-        });
-    });
-});
-
-// View replies toggle
-document.querySelectorAll('.view-replies-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const commentId = this.dataset.commentId;
-        const repliesDiv = document.querySelector(`.replies-${commentId}`);
-        
-        if (repliesDiv.style.display === 'none') {
-            repliesDiv.style.display = 'block';
-            this.textContent = 'Hide replies';
-        } else {
-            repliesDiv.style.display = 'none';
-            const count = repliesDiv.children.length;
-            this.textContent = `View ${count} repl${count === 1 ? 'y' : 'ies'}`;
-        }
-    });
-});
-</script>

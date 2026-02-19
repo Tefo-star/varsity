@@ -5,6 +5,7 @@
     function initCommentFeatures() {
         initCommentToggles();
         initCommentSubmits();
+        initReplyFeatures(); // Added reply features
     }
     
     function initCommentToggles() {
@@ -24,6 +25,149 @@
             input.removeEventListener('keypress', handleCommentKeyPress);
             input.addEventListener('keypress', handleCommentKeyPress);
         });
+    }
+    
+    // ==================== REPLY TO COMMENT (WHATSAPP STYLE) ====================
+    function initReplyFeatures() {
+        // Reply toggle buttons
+        document.querySelectorAll('.reply-btn').forEach(btn => {
+            btn.removeEventListener('click', handleReplyToggle);
+            btn.addEventListener('click', handleReplyToggle);
+        });
+        
+        // Reply submit buttons
+        document.querySelectorAll('.submit-reply-btn').forEach(btn => {
+            btn.removeEventListener('click', handleReplySubmit);
+            btn.addEventListener('click', handleReplySubmit);
+        });
+        
+        // View replies toggle
+        document.querySelectorAll('.view-replies-btn').forEach(btn => {
+            btn.removeEventListener('click', handleViewReplies);
+            btn.addEventListener('click', handleViewReplies);
+        });
+        
+        // Reply input enter key
+        document.querySelectorAll('.reply-input').forEach(input => {
+            input.removeEventListener('keypress', handleReplyKeyPress);
+            input.addEventListener('keypress', handleReplyKeyPress);
+        });
+    }
+    
+    function handleReplyToggle(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const btn = e.currentTarget;
+        const commentId = btn.dataset.commentId;
+        const replyForm = document.querySelector(`.reply-form-${commentId}`);
+        
+        if (replyForm) {
+            if (replyForm.style.display === 'none' || replyForm.style.display === '') {
+                replyForm.style.display = 'block';
+                replyForm.querySelector('.reply-input').focus();
+            } else {
+                replyForm.style.display = 'none';
+            }
+        }
+    }
+    
+    function handleReplySubmit(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const btn = e.currentTarget;
+        const parentId = btn.dataset.parentId;
+        const input = document.querySelector(`.reply-input[data-parent-id="${parentId}"]`);
+        const content = input.value.trim();
+        const postId = input.dataset.postId;
+        
+        if (!content) {
+            showNotification('Please enter a reply', 'error');
+            return;
+        }
+        
+        // Disable button
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        
+        fetch(`/ajax/comment/${postId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ 
+                content: content,
+                parent_id: parentId 
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add reply to the replies container
+                const repliesContainer = document.querySelector(`.replies-${parentId}`);
+                repliesContainer.insertAdjacentHTML('beforeend', data.comment_html);
+                
+                // Show replies container if hidden
+                if (repliesContainer.style.display === 'none' || repliesContainer.style.display === '') {
+                    repliesContainer.style.display = 'block';
+                }
+                
+                // Clear input and hide form
+                input.value = '';
+                document.querySelector(`.reply-form-${parentId}`).style.display = 'none';
+                
+                // Update reply count button
+                const viewBtn = document.querySelector(`.view-replies-btn[data-comment-id="${parentId}"]`);
+                if (viewBtn) {
+                    const currentCount = parseInt(viewBtn.textContent.match(/\d+/)[0]) || 0;
+                    const newCount = currentCount + 1;
+                    viewBtn.textContent = `View ${newCount} repl${newCount === 1 ? 'y' : 'ies'}`;
+                    viewBtn.style.display = 'inline-block';
+                }
+                
+                showNotification('Reply sent!', 'success');
+            } else {
+                showNotification('Error: ' + (data.error || 'Failed'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Network error', 'error');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
+    
+    function handleViewReplies(e) {
+        e.preventDefault();
+        
+        const btn = e.currentTarget;
+        const commentId = btn.dataset.commentId;
+        const repliesDiv = document.querySelector(`.replies-${commentId}`);
+        
+        if (repliesDiv.style.display === 'none' || repliesDiv.style.display === '') {
+            repliesDiv.style.display = 'block';
+            btn.textContent = 'Hide replies';
+        } else {
+            repliesDiv.style.display = 'none';
+            const count = repliesDiv.children.length;
+            btn.textContent = `View ${count} repl${count === 1 ? 'y' : 'ies'}`;
+        }
+    }
+    
+    function handleReplyKeyPress(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const input = e.currentTarget;
+            const parentId = input.dataset.parentId;
+            const submitBtn = document.querySelector(`.submit-reply-btn[data-parent-id="${parentId}"]`);
+            if (submitBtn) submitBtn.click();
+        }
     }
     
     function handleCommentToggle(e) {
