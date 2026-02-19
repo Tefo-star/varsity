@@ -14,7 +14,7 @@ class PostForm(forms.ModelForm):
             }),
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter title',
+                'placeholder': 'Title (optional)',
                 'maxlength': 200
             }),
             'video_url': forms.URLInput(attrs={
@@ -25,6 +25,11 @@ class PostForm(forms.ModelForm):
                 'class': 'form-control'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['title'].required = False  # Make title optional
+        self.fields['content'].required = True  # Content still required
 
 class CommentForm(forms.ModelForm):
     class Meta:

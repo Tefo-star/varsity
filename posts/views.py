@@ -115,6 +115,16 @@ def create_post(request):
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
+            
+            # Auto-generate title if empty
+            if not post.title:
+                content = post.content or ""
+                if content:
+                    # Take first 50 characters as title
+                    post.title = content[:50] + "..." if len(content) > 50 else content
+                else:
+                    post.title = "Untitled Post"
+            
             post.save()
             
             # Update user activity
@@ -418,7 +428,7 @@ def ajax_add_comment(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== REPLY TO POST (NEW) ====================
+# ==================== REPLY TO POST ====================
 @login_required
 @require_POST
 def ajax_reply_to_post(request, post_id):
@@ -432,10 +442,14 @@ def ajax_reply_to_post(request, post_id):
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
         
         # Create a new post as a reply
+        title = f"Re: {original_post.title}"
+        if len(title) > 200:
+            title = title[:197] + "..."
+            
         reply_post = Post.objects.create(
             author=request.user,
             post_type='TEXT',  # Default to text post
-            title=f"Re: {original_post.title}",  # Auto-title with "Re:"
+            title=title,
             content=content.strip(),
             is_archived=False
         )
@@ -850,16 +864,16 @@ def list_users(request):
     <html>
         <head>
             <style>
-                body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }
-                .container { max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; }
-                h1 { text-align: center; margin-bottom: 30px; }
-                table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }
-                th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
-                th { background: rgba(0,0,0,0.3); font-weight: 600; }
-                tr:hover { background: rgba(255,255,255,0.1); }
-                .badge { background: #ffd700; color: #333; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }
-                .admin-badge { background: #ff416c; color: white; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }
-                a { display: inline-block; margin-top: 20px; color: white; text-decoration: none; }
+                body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; }}
+                h1 {{ text-align: center; margin-bottom: 30px; }}
+                table {{ width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }}
+                th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }}
+                th {{ background: rgba(0,0,0,0.3); font-weight: 600; }}
+                tr:hover {{ background: rgba(255,255,255,0.1); }}
+                .badge {{ background: #ffd700; color: #333; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }}
+                .admin-badge {{ background: #ff416c; color: white; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }}
+                a {{ display: inline-block; margin-top: 20px; color: white; text-decoration: none; }}
             </style>
         </head>
         <body>
