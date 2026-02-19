@@ -7,7 +7,6 @@ from django.views.decorators.http import require_POST
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.timesince import timesince
 from datetime import timedelta
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -27,41 +26,35 @@ from .forms import PostForm, CommentForm
 
 # ==================== HELPER FUNCTIONS ====================
 def get_most_popular_reaction(counts):
-    """Return the reaction type with the highest count"""
     if not counts or sum(counts.values()) == 0:
         return 'like'
     return max(counts, key=counts.get)
 
-# ==================== HOME FEED WITH INFINITE SCROLL ====================
+# ==================== HOME FEED ====================
 def home(request):
-    # Get all posts with annotations - ALL RENAMED to avoid property conflicts
-    posts_list = Post.objects.filter(is_archived=False).select_related(
+    posts_list = Post.objects.filter(is_archived=False, parent=None).select_related(
         'author', 'author__activity'
     ).prefetch_related(
         'comments', 'reactions', 'shares', 'saves', 'replies'
     ).annotate(
-        total_reactions=Count('reactions'),    # Changed from reaction_count
-        comments_count=Count('comments'),       # Changed from comment_count
-        total_shares=Count('shares'),           # Changed from share_count
-        total_saves=Count('saves')              # Changed from save_count
-    ).order_by('-created_at')  # Most recent first
+        total_reactions=Count('reactions'),
+        comments_count=Count('comments'),
+        total_shares=Count('shares'),
+        total_saves=Count('saves')
+    ).order_by('-created_at')
     
-    # Pagination for infinite scroll
-    paginator = Paginator(posts_list, 10)  # 10 posts per page
+    paginator = Paginator(posts_list, 10)
     page = request.GET.get('page', 1)
     posts = paginator.get_page(page)
     
-    # Get online users count
     online_count = 0
     for user in User.objects.filter(is_active=True):
         if cache.get(f'online_{user.id}'):
             online_count += 1
     
-    # Check for new posts since last visit
     new_posts_count = 0
     if request.user.is_authenticated:
         last_seen_str = request.session.get('last_seen')
-        
         if last_seen_str:
             last_seen = parse_datetime(last_seen_str)
             if last_seen:
@@ -69,7 +62,6 @@ def home(request):
                     created_at__gt=last_seen,
                     is_archived=False
                 ).count()
-        
         request.session['last_seen'] = timezone.now().isoformat()
     
     context = {
@@ -79,19 +71,19 @@ def home(request):
     }
     return render(request, 'posts/home.html', context)
 
-# ==================== INFINITE SCROLL API ====================
+# ==================== INFINITE SCROLL ====================
 def load_more_posts(request):
     page = request.GET.get('page', 1)
-    posts_list = Post.objects.filter(is_archived=False).select_related(
+    posts_list = Post.objects.filter(is_archived=False, parent=None).select_related(
         'author', 'author__activity'
     ).prefetch_related(
         'comments', 'reactions', 'shares', 'saves', 'replies'
     ).annotate(
-        total_reactions=Count('reactions'),    # Changed from reaction_count
-        comments_count=Count('comments'),       # Changed from comment_count
-        total_shares=Count('shares'),           # Changed from share_count
-        total_saves=Count('saves')              # Changed from save_count
-    ).order_by('-created_at')  # Most recent first
+        total_reactions=Count('reactions'),
+        comments_count=Count('comments'),
+        total_shares=Count('shares'),
+        total_saves=Count('saves')
+    ).order_by('-created_at')
     
     paginator = Paginator(posts_list, 10)
     posts = paginator.get_page(page)
@@ -115,20 +107,15 @@ def create_post(request):
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
-            post.reply_count = 0  # FIXED: Added this line
+            post.reply_count = 0
             
-            # Auto-generate title if empty
-            if not post.title:
-                content = post.content or ""
-                if content:
-                    # Take first 50 characters as title
-                    post.title = content[:50] + "..." if len(content) > 50 else content
-                else:
-                    post.title = "Untitled Post"
+            if not post.title and post.content:
+                post.title = post.content[:50] + "..." if len(post.content) > 50 else post.content
+            elif not post.title:
+                post.title = "Untitled Post"
             
             post.save()
             
-            # Update user activity
             activity, _ = UserActivity.objects.get_or_create(user=request.user)
             activity.last_post_time = timezone.now()
             activity.save()
@@ -138,7 +125,9 @@ def create_post(request):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 post_html = render_to_string('posts/_post_card.html', {
                     'post': post,
-                    'user': request.user
+                    'user': request.user,
+                    'user_reaction': None,
+                    'user_saved': False
                 }, request=request)
                 return JsonResponse({'success': True, 'post_html': post_html})
             
@@ -163,7 +152,6 @@ def post_detail(request, post_id):
             comment.author = request.user
             comment.save()
             
-            # Create notification for post author (if not self-comment)
             if post.author != request.user:
                 Notification.objects.create(
                     recipient=post.author,
@@ -178,7 +166,6 @@ def post_detail(request, post_id):
     else:
         comment_form = CommentForm()
     
-    # Check if user has interacted
     user_reaction = post.get_user_reaction(request.user) if request.user.is_authenticated else None
     user_saved = PostSave.objects.filter(post=post, user=request.user).exists() if request.user.is_authenticated else False
     
@@ -231,8 +218,8 @@ def profile(request, username=None):
     else:
         profile_user = request.user
     
-    user_activity, created = UserActivity.objects.get_or_create(user=profile_user)
-    user_posts = Post.objects.filter(author=profile_user, is_archived=False)
+    user_activity, _ = UserActivity.objects.get_or_create(user=profile_user)
+    user_posts = Post.objects.filter(author=profile_user, is_archived=False, parent=None)
     
     context = {
         'profile_user': profile_user,
@@ -245,66 +232,38 @@ def profile(request, username=None):
 # ==================== NOTIFICATIONS ====================
 @login_required
 def notifications(request):
-    # First, mark unread notifications as read (without slicing)
-    Notification.objects.filter(
-        recipient=request.user,
-        is_read=False
-    ).update(is_read=True)
-    
-    # Then get the sliced queryset for display
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
     notifications_list = Notification.objects.filter(
         recipient=request.user
     ).select_related('sender', 'post', 'comment').order_by('-created_at')[:50]
     
-    context = {
-        'notifications': notifications_list
-    }
+    context = {'notifications': notifications_list}
     return render(request, 'posts/notifications.html', context)
 
 @login_required
 def get_notification_count(request):
-    count = Notification.objects.filter(
-        recipient=request.user,
-        is_read=False
-    ).count()
+    count = Notification.objects.filter(recipient=request.user, is_read=False).count()
     return JsonResponse({'count': count})
 
-# ==================== AJAX REACTION (NO PAGE RELOAD) ====================
+# ==================== AJAX REACTION ====================
 @login_required
 @require_POST
 def ajax_react_to_post(request, post_id):
-    """React to a post without page reload - ONLY ONE REACTION PER USER"""
     try:
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         reaction_type = data.get('reaction_type')
         
-        # Check if user already has a reaction on this post
-        existing_reaction = Reaction.objects.filter(
-            post=post,
-            user=request.user
-        ).first()
+        existing = Reaction.objects.filter(post=post, user=request.user).first()
         
-        if existing_reaction:
-            if existing_reaction.reaction_type == reaction_type:
-                # Same reaction - remove it (toggle off)
-                existing_reaction.delete()
-                action = 'removed'
+        if existing:
+            if existing.reaction_type == reaction_type:
+                existing.delete()
             else:
-                # Different reaction - update it (only one allowed)
-                existing_reaction.reaction_type = reaction_type
-                existing_reaction.save()
-                action = 'updated'
+                existing.reaction_type = reaction_type
+                existing.save()
         else:
-            # No existing reaction - create new
-            Reaction.objects.create(
-                post=post,
-                user=request.user,
-                reaction_type=reaction_type
-            )
-            action = 'added'
-            
-            # Create notification for post author
+            Reaction.objects.create(post=post, user=request.user, reaction_type=reaction_type)
             if post.author != request.user:
                 Notification.objects.create(
                     recipient=post.author,
@@ -313,14 +272,10 @@ def ajax_react_to_post(request, post_id):
                     post=post
                 )
         
-        # Get updated counts
-        counts = post.get_reaction_counts()
-        
         return JsonResponse({
             'success': True,
-            'action': action,
-            'counts': counts,
-            'user_reaction': reaction_type if action != 'removed' else None
+            'counts': post.get_reaction_counts(),
+            'user_reaction': reaction_type if not existing or existing.reaction_type != reaction_type else None
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -328,43 +283,26 @@ def ajax_react_to_post(request, post_id):
 # ==================== GET REACTIONS LIST ====================
 @login_required
 def get_post_reactions(request, post_id):
-    """Get list of users who reacted to a post, grouped by reaction type"""
     try:
         post = get_object_or_404(Post, id=post_id)
+        reactions = Reaction.objects.filter(post=post).select_related('user', 'user__activity')
         
-        # Get all reactions for this post with user details
-        reactions = Reaction.objects.filter(post=post).select_related(
-            'user', 'user__activity'
-        ).order_by('-created_at')
-        
-        # Group reactions by type
-        grouped_reactions = {
-            'like': [],
-            'love': [],
-            'haha': [],
-            'wow': [],
-            'sad': [],
-            'angry': []
-        }
-        
-        for reaction in reactions:
+        grouped = {'like': [], 'love': [], 'haha': [], 'wow': [], 'sad': [], 'angry': []}
+        for r in reactions:
             user_data = {
-                'id': reaction.user.id,
-                'username': reaction.user.username,
-                'profile_picture': reaction.user.activity.profile_picture.url if reaction.user.activity and reaction.user.activity.profile_picture else None,
-                'university': reaction.user.activity.university if reaction.user.activity and reaction.user.activity.university else None,
-                'is_verified': reaction.user.activity.is_verified if reaction.user.activity else False
+                'id': r.user.id,
+                'username': r.user.username,
+                'profile_picture': r.user.activity.profile_picture.url if r.user.activity and r.user.activity.profile_picture else None,
+                'university': r.user.activity.university if r.user.activity and r.user.activity.university else None,
+                'is_verified': r.user.activity.is_verified if r.user.activity else False
             }
-            grouped_reactions[reaction.reaction_type].append(user_data)
-        
-        # Get counts for each reaction type
-        counts = post.get_reaction_counts()
+            grouped[r.reaction_type].append(user_data)
         
         return JsonResponse({
             'success': True,
-            'reactions': grouped_reactions,
-            'counts': counts,
-            'total': sum(counts.values())
+            'reactions': grouped,
+            'counts': post.get_reaction_counts(),
+            'total': sum(post.get_reaction_counts().values())
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -373,7 +311,6 @@ def get_post_reactions(request, post_id):
 @login_required
 @require_POST
 def ajax_add_comment(request, post_id):
-    """Add comment without page reload"""
     try:
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
@@ -390,20 +327,17 @@ def ajax_add_comment(request, post_id):
             parent_id=parent_id
         )
         
-        # Create notification
         if parent_id:
-            # Reply to a comment
-            parent_comment = Comment.objects.get(id=parent_id)
-            if parent_comment.author != request.user:
+            parent = Comment.objects.get(id=parent_id)
+            if parent.author != request.user:
                 Notification.objects.create(
-                    recipient=parent_comment.author,
+                    recipient=parent.author,
                     sender=request.user,
                     notification_type='reply',
                     post=post,
                     comment=comment
                 )
         else:
-            # New comment on post
             if post.author != request.user:
                 Notification.objects.create(
                     recipient=post.author,
@@ -413,7 +347,6 @@ def ajax_add_comment(request, post_id):
                     comment=comment
                 )
         
-        # Return the new comment HTML
         comment_html = render_to_string('posts/_comment.html', {
             'comment': comment,
             'user': request.user
@@ -433,52 +366,46 @@ def ajax_add_comment(request, post_id):
 @login_required
 @require_POST
 def ajax_reply_to_post(request, post_id):
-    """Reply to a post - creates a nested reply like WhatsApp"""
     try:
-        original_post = get_object_or_404(Post, id=post_id)
+        original = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         content = data.get('content')
         
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
         
-        # Create a reply post (nested under original)
-        reply_post = Post.objects.create(
+        reply = Post.objects.create(
             author=request.user,
             post_type='TEXT',
-            title=f"Reply to {original_post.author.username}",
+            title=f"Reply to {original.author.username}",
             content=content.strip(),
             is_archived=False,
-            parent=original_post,
-            reply_count=0  # FIXED: Added this line
+            parent=original,
+            reply_count=0
         )
         
-        # Update reply count on original post
-        original_post.reply_count += 1
-        original_post.save(update_fields=['reply_count'])
+        original.reply_count += 1
+        original.save(update_fields=['reply_count'])
         
-        # Create notification for original post author
-        if original_post.author != request.user:
+        if original.author != request.user:
             Notification.objects.create(
-                recipient=original_post.author,
+                recipient=original.author,
                 sender=request.user,
                 notification_type='reply',
-                post=original_post,
-                comment=None
+                post=original
             )
         
-        # Render the new reply HTML
         reply_html = render_to_string('posts/_post_reply.html', {
-            'post': reply_post,
+            'post': reply,
             'user': request.user
         }, request=request)
         
         return JsonResponse({
             'success': True,
             'reply_html': reply_html,
-            'reply_id': reply_post.id,
-            'post_id': original_post.id,
-            'new_reply_count': original_post.reply_count
+            'reply_id': reply.id,
+            'post_id': original.id,
+            'new_reply_count': original.reply_count
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -487,20 +414,14 @@ def ajax_reply_to_post(request, post_id):
 @login_required
 @require_POST
 def ajax_delete_comment(request, comment_id):
-    """Delete a comment"""
     try:
         comment = get_object_or_404(Comment, id=comment_id)
-        
         if comment.author != request.user and not request.user.is_superuser:
             return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
         
         post_id = comment.post.id
         comment.delete()
-        
-        return JsonResponse({
-            'success': True,
-            'post_id': post_id
-        })
+        return JsonResponse({'success': True, 'post_id': post_id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -508,28 +429,16 @@ def ajax_delete_comment(request, comment_id):
 @login_required
 @require_POST
 def ajax_react_to_comment(request, comment_id):
-    """React to a comment without page reload"""
     try:
         comment = get_object_or_404(Comment, id=comment_id)
         data = json.loads(request.body)
-        reaction_type = data.get('reaction_type', 'like')
         
-        existing_reaction = CommentReaction.objects.filter(
-            comment=comment,
-            user=request.user
-        ).first()
+        existing = CommentReaction.objects.filter(comment=comment, user=request.user).first()
         
-        if existing_reaction:
-            existing_reaction.delete()
-            action = 'removed'
+        if existing:
+            existing.delete()
         else:
-            CommentReaction.objects.create(
-                comment=comment,
-                user=request.user
-            )
-            action = 'added'
-            
-            # Create notification for comment author
+            CommentReaction.objects.create(comment=comment, user=request.user)
             if comment.author != request.user:
                 Notification.objects.create(
                     recipient=comment.author,
@@ -539,13 +448,9 @@ def ajax_react_to_comment(request, comment_id):
                     comment=comment
                 )
         
-        # Get updated reaction count
-        reaction_count = comment.reactions.count()
-        
         return JsonResponse({
             'success': True,
-            'action': action,
-            'reaction_count': reaction_count
+            'reaction_count': comment.reactions.count()
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -554,14 +459,9 @@ def ajax_react_to_comment(request, comment_id):
 @login_required
 @require_POST
 def ajax_save_post(request, post_id):
-    """Save/unsave a post"""
     try:
         post = get_object_or_404(Post, id=post_id)
-        
-        saved, created = PostSave.objects.get_or_create(
-            post=post,
-            user=request.user
-        )
+        saved, created = PostSave.objects.get_or_create(post=post, user=request.user)
         
         if not created:
             saved.delete()
@@ -569,12 +469,10 @@ def ajax_save_post(request, post_id):
         else:
             is_saved = True
         
-        save_count = post.saves.count()
-        
         return JsonResponse({
             'success': True,
             'is_saved': is_saved,
-            'save_count': save_count
+            'save_count': post.saves.count()
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -583,30 +481,21 @@ def ajax_save_post(request, post_id):
 @login_required
 @require_POST
 def ajax_share_post(request, post_id):
-    """Share a post"""
     try:
         post = get_object_or_404(Post, id=post_id)
+        share, created = PostShare.objects.get_or_create(post=post, user=request.user)
         
-        share, created = PostShare.objects.get_or_create(
-            post=post,
-            user=request.user
-        )
-        
-        if created:
-            # Create notification for post author
-            if post.author != request.user:
-                Notification.objects.create(
-                    recipient=post.author,
-                    sender=request.user,
-                    notification_type='share',
-                    post=post
-                )
-        
-        share_count = post.shares.count()
+        if created and post.author != request.user:
+            Notification.objects.create(
+                recipient=post.author,
+                sender=request.user,
+                notification_type='share',
+                post=post
+            )
         
         return JsonResponse({
             'success': True,
-            'share_count': share_count
+            'share_count': post.shares.count()
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -615,35 +504,26 @@ def ajax_share_post(request, post_id):
 @login_required
 @require_POST
 def ajax_report_post(request, post_id):
-    """Report a post"""
     try:
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         
-        report = PostReport.objects.create(
+        PostReport.objects.create(
             post=post,
             user=request.user,
             reason=data.get('reason', 'other'),
             description=data.get('description', '')
         )
         
-        return JsonResponse({
-            'success': True,
-            'report_id': report.id
-        })
+        return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 # ==================== SAVED POSTS ====================
 @login_required
 def saved_posts(request):
-    saved_posts = PostSave.objects.filter(
-        user=request.user
-    ).select_related('post', 'post__author').order_by('-created_at')
-    
-    context = {
-        'saved_posts': saved_posts
-    }
+    saved = PostSave.objects.filter(user=request.user).select_related('post', 'post__author')
+    context = {'saved_posts': saved}
     return render(request, 'posts/saved_posts.html', context)
 
 # ==================== SEARCH ====================
@@ -652,83 +532,58 @@ def search(request):
     
     if query:
         posts = Post.objects.filter(
-            Q(title__icontains=query) |
-            Q(content__icontains=query) |
-            Q(author__username__icontains=query)
-        ).filter(is_archived=False)[:20]
-        
-        users = User.objects.filter(
-            Q(username__icontains=query) |
-            Q(email__icontains=query)
-        )[:10]
+            Q(title__icontains=query) | Q(content__icontains=query) | Q(author__username__icontains=query),
+            is_archived=False, parent=None
+        )[:20]
+        users = User.objects.filter(Q(username__icontains=query) | Q(email__icontains=query))[:10]
     else:
-        posts = []
-        users = []
+        posts, users = [], []
     
-    context = {
-        'query': query,
-        'posts': posts,
-        'users': users
-    }
+    context = {'query': query, 'posts': posts, 'users': users}
     return render(request, 'posts/search.html', context)
 
 # ==================== ONLINE USERS API ====================
 def online_users_api(request):
-    online_count = 0
+    count = 0
     for user in User.objects.filter(is_active=True):
         if cache.get(f'online_{user.id}'):
-            online_count += 1
-    return JsonResponse({'count': online_count})
+            count += 1
+    return JsonResponse({'count': count})
 
-# ==================== LEGACY: REPLY TO COMMENT (Page reload version) ====================
+# ==================== LEGACY FUNCTIONS ====================
 @login_required
 def reply_to_comment(request, comment_id):
-    parent_comment = get_object_or_404(Comment, id=comment_id)
-    
+    parent = get_object_or_404(Comment, id=comment_id)
     if request.method == 'POST':
         content = request.POST.get('content')
         if content:
             comment = Comment.objects.create(
-                post=parent_comment.post,
+                post=parent.post,
                 author=request.user,
-                parent=parent_comment,
+                parent=parent,
                 content=content
             )
-            
-            # Create notification
-            if parent_comment.author != request.user:
+            if parent.author != request.user:
                 Notification.objects.create(
-                    recipient=parent_comment.author,
+                    recipient=parent.author,
                     sender=request.user,
                     notification_type='reply',
-                    post=parent_comment.post,
+                    post=parent.post,
                     comment=comment
                 )
-            
             messages.success(request, 'Reply added!')
-    
-    return redirect('post_detail', post_id=parent_comment.post.id)
+    return redirect('post_detail', post_id=parent.post.id)
 
-# ==================== LEGACY: REACT TO COMMENT (Page reload version) ====================
 @login_required
 @require_POST
 def react_to_comment(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
+    existing = CommentReaction.objects.filter(comment=comment, user=request.user).first()
     
-    existing_reaction = CommentReaction.objects.filter(
-        comment=comment,
-        user=request.user
-    ).first()
-    
-    if existing_reaction:
-        existing_reaction.delete()
+    if existing:
+        existing.delete()
     else:
-        CommentReaction.objects.create(
-            comment=comment,
-            user=request.user
-        )
-        
-        # Create notification
+        CommentReaction.objects.create(comment=comment, user=request.user)
         if comment.author != request.user:
             Notification.objects.create(
                 recipient=comment.author,
@@ -737,190 +592,55 @@ def react_to_comment(request, comment_id):
                 post=comment.post,
                 comment=comment
             )
-    
     return redirect('post_detail', post_id=comment.post.id)
 
-# ==================== TEMPORARY FAKE MIGRATION VIEW ====================
+# ==================== MIGRATION HELPERS ====================
 @staff_member_required
 def fake_post_migration(request):
-    """Temporary view to fake the 0007 migration on Render."""
-    from django.core.management import call_command
-    from io import StringIO
-    
-    out = StringIO()
-    try:
-        # This marks migration 0007 as applied without running the SQL
-        call_command('migrate', 'posts', '0007', '--fake', stdout=out)
-        
-        # Also try to run any other pending migrations normally
-        call_command('migrate', 'posts', stdout=out)
-        
-        return HttpResponse(f"""
-        <html>
-            <head>
-                <style>
-                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
-                    .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
-                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
-                    .success {{ background: rgba(0,255,0,0.2); padding: 20px; border-radius: 10px; }}
-                    pre {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto; color: #fff; }}
-                    a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>✅ Migration Fake Successful</h1>
-                    <div class="success">
-                        <h2>Migration 0007 has been faked successfully!</h2>
-                    </div>
-                    <h3>Output:</h3>
-                    <pre>{out.getvalue()}</pre>
-                    <a href="/post/1/">Go to Post 1</a>
-                    <a href="/admin/">Go to Admin</a>
-                </div>
-            </body>
-        </html>
-        """)
-    except Exception as e:
-        return HttpResponse(f"""
-        <html>
-            <head>
-                <style>
-                    body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
-                    .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
-                    h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
-                    .error {{ background: rgba(255,0,0,0.2); padding: 20px; border-radius: 10px; }}
-                    pre {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto; color: #fff; }}
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <h1>❌ Error</h1>
-                    <div class="error">
-                        <h2>Error: {str(e)}</h2>
-                    </div>
-                    <pre>{out.getvalue()}</pre>
-                    <a href="/admin/">Go to Admin</a>
-                </div>
-            </body>
-        </html>
-        """, status=500)
-
-# ==================== MIGRATION RUNNER ====================
-def run_posts_migrations(request):
-    """Run migrations for posts app (temporary fix for Render)"""
     if not settings.DEBUG:
         return HttpResponse("Not allowed", status=403)
     
-    from django.core.management import call_command
+    out = io.StringIO()
+    sys.stdout = out
+    try:
+        call_command('migrate', 'posts', '0007', '--fake', stdout=out)
+        result = "✅ Migration fake successful!"
+    except Exception as e:
+        result = f"❌ Error: {e}"
+    finally:
+        sys.stdout = sys.__stdout__
     
-    # Capture output
-    output = io.StringIO()
-    sys.stdout = output
+    return HttpResponse(f"<pre>{result}\n\n{out.getvalue()}</pre>")
+
+def run_posts_migrations(request):
+    if not settings.DEBUG:
+        return HttpResponse("Not allowed", status=403)
     
+    out = io.StringIO()
+    sys.stdout = out
     try:
         call_command('migrate', 'posts', verbosity=2, interactive=False)
         result = "✅ Migrations ran successfully!"
     except Exception as e:
-        result = f"❌ Error: {str(e)}"
+        result = f"❌ Error: {e}"
     finally:
         sys.stdout = sys.__stdout__
     
-    return HttpResponse(f"""
-    <html>
-        <head>
-            <style>
-                body {{ font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
-                .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; }}
-                h1 {{ font-size: 2.5rem; margin-bottom: 20px; }}
-                .success {{ background: rgba(0,255,0,0.2); padding: 20px; border-radius: 10px; }}
-                .error {{ background: rgba(255,0,0,0.2); padding: 20px; border-radius: 10px; }}
-                pre {{ background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto; }}
-                a {{ display: inline-block; background: white; color: #667eea; padding: 15px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; margin: 10px; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🔄 Posts Migration Runner</h1>
-                <div class="{'success' if '✅' in result else 'error'}">
-                    <h2>{result}</h2>
-                </div>
-                <h3>Output:</h3>
-                <pre>{output.getvalue()}</pre>
-                <a href="/post/1/">Go to Post 1</a>
-                <a href="/admin/">Go to Admin</a>
-            </div>
-        </body>
-    </html>
-    """)
+    return HttpResponse(f"<pre>{result}\n\n{out.getvalue()}</pre>")
 
-# ==================== LIST USERS (Admin only) ====================
+# ==================== ADMIN UTILITIES ====================
 @login_required
 def list_users(request):
     if not request.user.is_superuser:
         return HttpResponse("Unauthorized", status=401)
     
     users = User.objects.all().values('id', 'username', 'email', 'is_superuser', 'is_staff')
-    user_list = list(users)
-    
-    html = """
-    <html>
-        <head>
-            <style>
-                body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 50px; }}
-                .container {{ max-width: 800px; margin: 0 auto; background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; }}
-                h1 {{ text-align: center; margin-bottom: 30px; }}
-                table {{ width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }}
-                th, td {{ padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }}
-                th {{ background: rgba(0,0,0,0.3); font-weight: 600; }}
-                tr:hover {{ background: rgba(255,255,255,0.1); }}
-                .badge {{ background: #ffd700; color: #333; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }}
-                .admin-badge {{ background: #ff416c; color: white; padding: 3px 8px; border-radius: 20px; font-size: 0.8rem; }}
-                a {{ display: inline-block; margin-top: 20px; color: white; text-decoration: none; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>👥 Registered Users</h1>
-                <table>
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Type</th>
-                    </tr>
-    """
-    
-    for user in user_list:
-        user_type = ""
-        if user['is_superuser']:
-            user_type = '<span class="admin-badge">SUPERUSER</span>'
-        elif user['is_staff']:
-            user_type = '<span class="admin-badge">STAFF</span>'
-        else:
-            user_type = '<span class="badge">USER</span>'
-            
-        html += f"""
-                    <tr>
-                        <td>{user['id']}</td>
-                        <td><strong>{user['username']}</strong></td>
-                        <td>{user['email']}</td>
-                        <td>{user_type}</td>
-                    </tr>
-        """
-    
-    html += """
-                </table>
-                <div style="text-align: center; margin-top: 30px;">
-                    <a href="/admin/">Go to Admin Login →</a>
-                </div>
-            </div>
-        </body>
-    </html>
-    """
-    
+    html = "<h1>Users</h1><table border=1><tr><th>ID</th><th>Username</th><th>Email</th><th>Type</th></tr>"
+    for u in users:
+        user_type = "SUPERUSER" if u['is_superuser'] else "STAFF" if u['is_staff'] else "USER"
+        html += f"<tr><td>{u['id']}</td><td>{u['username']}</td><td>{u['email']}</td><td>{user_type}</td></tr>"
+    html += "</table><a href='/admin/'>Admin</a>"
     return HttpResponse(html)
 
-# ==================== TEST VIEW ====================
 def test_view(request):
     return render(request, 'test.html')

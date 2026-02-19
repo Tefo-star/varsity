@@ -26,9 +26,9 @@ class Post(models.Model):
     is_pinned = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     
-    # WhatsApp-style reply fields
+    # WhatsApp-style reply fields - WITH DEFAULTS
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
-    reply_count = models.IntegerField(default=0)  # FIXED: default=0
+    reply_count = models.IntegerField(default=0)
     
     class Meta:
         ordering = ['-is_pinned', '-created_at']
@@ -41,7 +41,7 @@ class Post(models.Model):
         return f"{self.title} by {self.author.username}"
     
     def get_reaction_counts(self):
-        reactions = {
+        return {
             'like': self.reactions.filter(reaction_type='like').count(),
             'love': self.reactions.filter(reaction_type='love').count(),
             'haha': self.reactions.filter(reaction_type='haha').count(),
@@ -49,7 +49,6 @@ class Post(models.Model):
             'sad': self.reactions.filter(reaction_type='sad').count(),
             'angry': self.reactions.filter(reaction_type='angry').count(),
         }
-        return reactions
     
     def get_user_reaction(self, user):
         if user.is_authenticated:
@@ -97,9 +96,7 @@ class Comment(models.Model):
         return self.replies.count()
     
     def get_reaction_counts(self):
-        return {
-            'like': self.reactions.filter(reaction_type='like').count(),
-        }
+        return {'like': self.reactions.filter(reaction_type='like').count()}
     
     def get_user_reaction(self, user):
         if user.is_authenticated:
@@ -108,9 +105,7 @@ class Comment(models.Model):
         return None
 
 class CommentReaction(models.Model):
-    REACTION_TYPES = [
-        ('like', '👍 Like'),
-    ]
+    REACTION_TYPES = [('like', '👍 Like')]
     
     comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='reactions')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -119,9 +114,7 @@ class CommentReaction(models.Model):
     
     class Meta:
         unique_together = ['comment', 'user']
-        indexes = [
-            models.Index(fields=['comment', 'user']),
-        ]
+        indexes = [models.Index(fields=['comment', 'user'])]
     
     def __str__(self):
         return f"{self.user.username} liked comment"
@@ -149,7 +142,7 @@ class Reaction(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.user.username} reacted {self.reaction_type} to {self.post.title}"
+        return f"{self.user.username} reacted {self.reaction_type}"
 
 class PostShare(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='shares')
@@ -197,7 +190,7 @@ class PostReport(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"Report on {self.post.title} by {self.user}"
+        return f"Report on {self.post.title}"
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = [
@@ -206,7 +199,6 @@ class Notification(models.Model):
         ('reply', 'Reply'),
         ('share', 'Share'),
         ('mention', 'Mention'),
-        # ('follow', 'Follow'),  # REMOVED
     ]
     
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
@@ -225,7 +217,7 @@ class Notification(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.sender.username} {self.notification_type} for {self.recipient.username}"
+        return f"{self.sender.username} {self.notification_type}"
 
 class Follow(models.Model):
     follower = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
