@@ -179,7 +179,7 @@ def post_detail(request, post_id):
     }
     return render(request, 'posts/post_detail.html', context)
 
-# ==================== DELETE POST ====================
+# ==================== DELETE POST (FIXED - Updates reply_count) ====================
 @login_required
 def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
@@ -189,6 +189,12 @@ def delete_post(request, post_id):
         return redirect('home')
 
     if request.method == 'POST':
+        # If this post is a reply, update the parent's reply_count
+        if post.parent:
+            parent = post.parent
+            parent.reply_count = max(0, parent.reply_count - 1)  # Ensure it doesn't go negative
+            parent.save(update_fields=['reply_count'])
+
         post.delete()
         messages.success(request, "Your post has been deleted! 🗑️")
         return redirect('home')

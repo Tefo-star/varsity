@@ -266,14 +266,70 @@ document.querySelectorAll('.reaction-container').forEach(container => {
     });
 });
 
-// ==================== DELETE POST ====================
+// ==================== DELETE POST (UPDATED - Updates UI) ====================
 function confirmDelete(postId) {
     if (confirm('Delete this post?')) {
+        const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+        const isReply = postCard.hasAttribute('data-reply');
+        
         fetch(`/post/${postId}/delete/`, {
             method: 'POST',
             headers: {'X-CSRFToken': '{{ csrf_token }}'}
-        }).then(() => document.querySelector(`.post-card[data-post-id="${postId}"]`).remove());
+        })
+        .then(response => {
+            if (response.ok) {
+                // If this was a reply, update the parent's reply count in UI
+                if (isReply) {
+                    // Find the parent post (the one with replies section)
+                    const parentPost = Array.from(document.querySelectorAll('.post-card')).find(card => 
+                        card.querySelector(`.replies-container-${postId}`)
+                    );
+                    
+                    if (parentPost) {
+                        const replyCountSpan = parentPost.querySelector('.toggle-replies-btn');
+                        if (replyCountSpan) {
+                            const currentText = replyCountSpan.textContent;
+                            const match = currentText.match(/\d+/);
+                            if (match) {
+                                const currentCount = parseInt(match[0]);
+                                const newCount = currentCount - 1;
+                                if (newCount > 0) {
+                                    replyCountSpan.innerHTML = `<i class="fas fa-chevron-right me-1 small"></i> View ${newCount} repl${newCount === 1 ? 'y' : 'ies'}`;
+                                } else {
+                                    // Remove the entire replies section if no replies left
+                                    const repliesSection = parentPost.querySelector('.replies-section');
+                                    if (repliesSection) repliesSection.remove();
+                                }
+                            }
+                        }
+                    }
+                }
+                postCard.remove();
+                showNotification('Post deleted successfully!');
+            }
+        });
     }
+}
+
+// ==================== SHOW NOTIFICATION ====================
+function showNotification(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.background = type === 'success' ? '#48bb78' : '#f56565';
+    toast.style.color = 'white';
+    toast.style.padding = '10px 20px';
+    toast.style.borderRadius = '50px';
+    toast.style.zIndex = '9999';
+    toast.style.animation = 'slideUp 0.3s ease';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'slideDown 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 // ==================== SHOW REACTIONS MODAL ====================
