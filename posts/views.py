@@ -418,6 +418,54 @@ def ajax_add_comment(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+# ==================== REPLY TO POST (NEW) ====================
+@login_required
+@require_POST
+def ajax_reply_to_post(request, post_id):
+    """Reply to a post (creates a new post that references the original)"""
+    try:
+        original_post = get_object_or_404(Post, id=post_id)
+        data = json.loads(request.body)
+        content = data.get('content')
+        
+        if not content or not content.strip():
+            return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
+        
+        # Create a new post as a reply
+        reply_post = Post.objects.create(
+            author=request.user,
+            post_type='TEXT',  # Default to text post
+            title=f"Re: {original_post.title}",  # Auto-title with "Re:"
+            content=content.strip(),
+            is_archived=False
+        )
+        
+        # Create notification for original post author
+        if original_post.author != request.user:
+            Notification.objects.create(
+                recipient=original_post.author,
+                sender=request.user,
+                notification_type='reply',
+                post=original_post,
+                comment=None
+            )
+        
+        # Render the new post HTML
+        post_html = render_to_string('posts/_post_card.html', {
+            'post': reply_post,
+            'user': request.user,
+            'user_reaction': None,
+            'user_saved': False
+        }, request=request)
+        
+        return JsonResponse({
+            'success': True,
+            'post_html': post_html,
+            'post_id': reply_post.id
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 # ==================== AJAX DELETE COMMENT ====================
 @login_required
 @require_POST
