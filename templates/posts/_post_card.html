@@ -70,39 +70,27 @@
         </div>
     {% endif %}
 
-    <!-- Post Stats - Facebook Style with Dynamic Icon -->
+    <!-- Post Stats -->
     <div class="d-flex justify-content-between mb-2" style="color: #718096; font-size: 0.9rem;">
         <div class="d-flex align-items-center">
-            <!-- Reaction Stats with Icon (Facebook Style) - Now Clickable -->
+            <!-- Reaction Stats - Clickable -->
             <span class="me-3 reaction-stats" data-post-id="{{ post.id }}" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#reactionsModal-{{ post.id }}">
                 {% with counts=post.get_reaction_counts %}
                     {% with total=counts.like|add:counts.love|add:counts.haha|add:counts.wow|add:counts.sad|add:counts.angry %}
                         {% if total > 0 %}
-                            {% with most_popular=counts.like %}
-                                {% if counts.love > most_popular %}
-                                    {% with most_popular=counts.love %}
-                                        <i class="fas fa-heart me-1" style="color: #f56565;"></i>
-                                    {% endwith %}
-                                {% elif counts.haha > most_popular %}
-                                    {% with most_popular=counts.haha %}
-                                        <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>
-                                    {% endwith %}
-                                {% elif counts.wow > most_popular %}
-                                    {% with most_popular=counts.wow %}
-                                        <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>
-                                    {% endwith %}
-                                {% elif counts.sad > most_popular %}
-                                    {% with most_popular=counts.sad %}
-                                        <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>
-                                    {% endwith %}
-                                {% elif counts.angry > most_popular %}
-                                    {% with most_popular=counts.angry %}
-                                        <i class="fas fa-angry me-1" style="color: #e53e3e;"></i>
-                                    {% endwith %}
-                                {% else %}
-                                    <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>
-                                {% endif %}
-                            {% endwith %}
+                            {% if counts.angry >= counts.like and counts.angry >= counts.love and counts.angry >= counts.haha and counts.angry >= counts.wow and counts.angry >= counts.sad %}
+                                <i class="fas fa-angry me-1" style="color: #e53e3e;"></i>
+                            {% elif counts.sad >= counts.like and counts.sad >= counts.love and counts.sad >= counts.haha and counts.sad >= counts.wow %}
+                                <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>
+                            {% elif counts.wow >= counts.like and counts.wow >= counts.love and counts.wow >= counts.haha %}
+                                <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>
+                            {% elif counts.haha >= counts.like and counts.haha >= counts.love %}
+                                <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>
+                            {% elif counts.love >= counts.like %}
+                                <i class="fas fa-heart me-1" style="color: #f56565;"></i>
+                            {% else %}
+                                <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>
+                            {% endif %}
                             <span class="reactions-count">{{ total }}</span>
                         {% else %}
                             <i class="fas fa-thumbs-up me-1" style="color: #718096;"></i>
@@ -119,16 +107,15 @@
         </div>
     </div>
 
-    <!-- Action Bar with Facebook-style hover menu -->
+    <!-- Action Bar -->
     <div class="action-bar-wrapper" style="position: relative;">
-        <!-- Main Action Buttons -->
         <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3" style="border-color: #e2e8f0 !important;">
-            <!-- Reaction Container with Hover Menu -->
+            <!-- Reaction Container -->
             <div class="reaction-container" style="position: relative;">
-                <!-- Main Like Button (trigger) - Updates based on user's reaction -->
+                <!-- Main Like Button -->
                 <button class="btn btn-link text-decoration-none main-like-btn" 
                         data-post-id="{{ post.id }}"
-                        style="color: {% if user_reaction %}{% if user_reaction == 'love' %}#f56565{% elif user_reaction == 'haha' %}#ecc94b{% elif user_reaction == 'wow' %}#9f7aea{% elif user_reaction == 'sad' %}#4299e1{% elif user_reaction == 'angry' %}#e53e3e{% else %}#3182ce{% endif %}{% else %}#718096{% endif %}; font-weight: {% if user_reaction %}600{% else %}500{% endif %}; position: relative; padding: 0; border: none; background: none;">
+                        style="color: {% if user_reaction %}{% if user_reaction == 'love' %}#f56565{% elif user_reaction == 'haha' %}#ecc94b{% elif user_reaction == 'wow' %}#9f7aea{% elif user_reaction == 'sad' %}#4299e1{% elif user_reaction == 'angry' %}#e53e3e{% else %}#3182ce{% endif %}{% else %}#718096{% endif %}; font-weight: {% if user_reaction %}600{% else %}500{% endif %}; padding: 0; border: none; background: none;">
                     {% if user_reaction %}
                         {% if user_reaction == 'love' %}
                             <i class="fas fa-heart me-1" style="color: #f56565;"></i> Love
@@ -149,26 +136,21 @@
                     <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
                 </button>
                 
-                <!-- Reaction Menu (hidden by default) -->
+                <!-- Reaction Menu -->
                 <div class="reaction-menu" style="display: none; position: absolute; bottom: 100%; left: 0; background: white; border-radius: 40px; padding: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 10px; z-index: 1000; white-space: nowrap;">
-                    <!-- Love -->
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="love" style="font-size: 24px; padding: 0 5px; transition: transform 0.2s; border: none; background: none;" title="Love">
+                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="love" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Love">
                         <span style="font-size: 28px;">❤️</span>
                     </button>
-                    <!-- Haha -->
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="haha" style="font-size: 24px; padding: 0 5px; transition: transform 0.2s; border: none; background: none;" title="Haha">
+                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="haha" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Haha">
                         <span style="font-size: 28px;">😂</span>
                     </button>
-                    <!-- Wow -->
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="wow" style="font-size: 24px; padding: 0 5px; transition: transform 0.2s; border: none; background: none;" title="Wow">
+                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="wow" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Wow">
                         <span style="font-size: 28px;">😮</span>
                     </button>
-                    <!-- Sad -->
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="sad" style="font-size: 24px; padding: 0 5px; transition: transform 0.2s; border: none; background: none;" title="Sad">
+                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="sad" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Sad">
                         <span style="font-size: 28px;">😢</span>
                     </button>
-                    <!-- Angry -->
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="angry" style="font-size: 24px; padding: 0 5px; transition: transform 0.2s; border: none; background: none;" title="Angry">
+                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="angry" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Angry">
                         <span style="font-size: 28px;">😡</span>
                     </button>
                 </div>
@@ -195,7 +177,6 @@
 
     <!-- Comments Section -->
     <div class="comments-section comments-section-{{ post.id }}" style="display: none;">
-        <!-- Comments Container -->
         <div class="comments-container comments-container-{{ post.id }} mb-3">
             {% for comment in post.comments.all|slice:":3" %}
                 {% if not comment.parent %}
@@ -212,7 +193,6 @@
             </div>
         {% endif %}
         
-        <!-- Add Comment Form -->
         {% if user.is_authenticated %}
             <div class="add-comment-form mt-3">
                 <div class="d-flex gap-2">
@@ -232,394 +212,39 @@
         {% endif %}
     </div>
 
-    <!-- Reactions List Modal (NEW) -->
-    <div class="modal fade" id="reactionsModal-{{ post.id }}" tabindex="-1" aria-labelledby="reactionsModalLabel-{{ post.id }}" aria-hidden="true">
+    <!-- Reactions Modal -->
+    <div class="modal fade" id="reactionsModal-{{ post.id }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border-radius: 20px; background: white;">
                 <div class="modal-header" style="border-bottom: 1px solid #e2e8f0; padding: 15px 20px;">
-                    <h5 class="modal-title" id="reactionsModalLabel-{{ post.id }}" style="font-weight: 600;">Reactions</h5>
+                    <h5 class="modal-title" style="font-weight: 600;">Reactions</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
-                    <!-- Reaction Tabs -->
-                    <div class="reaction-tabs" style="display: flex; border-bottom: 1px solid #e2e8f0; padding: 10px 15px; position: sticky; top: 0; background: white; z-index: 10;">
+                    <!-- Tabs -->
+                    <div class="reaction-tabs" style="display: flex; border-bottom: 1px solid #e2e8f0; padding: 10px 15px; background: white;">
                         <button class="reaction-tab active" data-tab="all" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 600; color: #3182ce; border-bottom: 2px solid #3182ce;">
-                            All <span class="reaction-tab-count all-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span>
+                            All <span>{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span>
                         </button>
                         <button class="reaction-tab" data-tab="like" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            👍 <span class="reaction-tab-count like-count">{{ post.get_reaction_counts.like }}</span>
+                            👍 <span>{{ post.get_reaction_counts.like }}</span>
                         </button>
                         <button class="reaction-tab" data-tab="love" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            ❤️ <span class="reaction-tab-count love-count">{{ post.get_reaction_counts.love }}</span>
+                            ❤️ <span>{{ post.get_reaction_counts.love }}</span>
                         </button>
                         <button class="reaction-tab" data-tab="haha" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😂 <span class="reaction-tab-count haha-count">{{ post.get_reaction_counts.haha }}</span>
+                            😂 <span>{{ post.get_reaction_counts.haha }}</span>
                         </button>
                         <button class="reaction-tab" data-tab="wow" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😮 <span class="reaction-tab-count wow-count">{{ post.get_reaction_counts.wow }}</span>
+                            😮 <span>{{ post.get_reaction_counts.wow }}</span>
                         </button>
                         <button class="reaction-tab" data-tab="sad" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😢 <span class="reaction-tab-count sad-count">{{ post.get_reaction_counts.sad }}</span>
+                            😢 <span>{{ post.get_reaction_counts.sad }}</span>
                         </button>
                         <button class="reaction-tab" data-tab="angry" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😡 <span class="reaction-tab-count angry-count">{{ post.get_reaction_counts.angry }}</span>
+                            😡 <span>{{ post.get_reaction_counts.angry }}</span>
                         </button>
                     </div>
                     
-                    <!-- Reactions List Container -->
-                    <div id="reactions-list-{{ post.id }}" class="reactions-list" style="padding: 10px 15px;">
-                        <!-- Loading Spinner -->
-                        <div class="text-center py-4" id="reactions-loading-{{ post.id }}">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-// ==================== FACEBOOK-STYLE REACTION MENU ====================
-document.addEventListener('DOMContentLoaded', function() {
-    let reactionTimer;
-    let menuTimeout;
-    
-    // Map reaction types to display text and colors
-    const reactionDisplay = {
-        'like': { text: 'Like', color: '#3182ce', icon: 'fa-thumbs-up' },
-        'love': { text: 'Love', color: '#f56565', icon: 'fa-heart' },
-        'haha': { text: 'Haha', color: '#ecc94b', icon: 'fa-laugh' },
-        'wow': { text: 'Wow', color: '#9f7aea', icon: 'fa-surprise' },
-        'sad': { text: 'Sad', color: '#4299e1', icon: 'fa-sad-tear' },
-        'angry': { text: 'Angry', color: '#e53e3e', icon: 'fa-angry' }
-    };
-    
-    // For each reaction container
-    document.querySelectorAll('.reaction-container').forEach(container => {
-        const likeBtn = container.querySelector('.main-like-btn');
-        const reactionMenu = container.querySelector('.reaction-menu');
-        
-        if (!likeBtn || !reactionMenu) return;
-        
-        // Mouse enter - show menu after delay (like Facebook)
-        likeBtn.addEventListener('mouseenter', function(e) {
-            clearTimeout(menuTimeout);
-            reactionTimer = setTimeout(() => {
-                reactionMenu.style.display = 'block';
-                
-                // Animate the reaction options
-                const options = reactionMenu.querySelectorAll('.reaction-option');
-                options.forEach((opt, index) => {
-                    opt.style.transform = 'scale(0)';
-                    opt.style.transition = 'transform 0.2s';
-                    setTimeout(() => {
-                        opt.style.transform = 'scale(1)';
-                    }, index * 50);
-                });
-            }, 500); // 500ms delay like Facebook
-        });
-        
-        // Mouse leave from like button - hide menu after delay
-        likeBtn.addEventListener('mouseleave', function() {
-            clearTimeout(reactionTimer);
-            menuTimeout = setTimeout(() => {
-                reactionMenu.style.display = 'none';
-            }, 300);
-        });
-        
-        // Mouse enter on menu - keep it open
-        reactionMenu.addEventListener('mouseenter', function() {
-            clearTimeout(menuTimeout);
-        });
-        
-        // Mouse leave from menu - hide it
-        reactionMenu.addEventListener('mouseleave', function() {
-            menuTimeout = setTimeout(() => {
-                reactionMenu.style.display = 'none';
-            }, 300);
-        });
-        
-        // Handle reaction selection
-        reactionMenu.querySelectorAll('.reaction-option').forEach(option => {
-            option.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const postId = this.dataset.postId;
-                const reactionType = this.dataset.reaction;
-                const postCard = this.closest('.post-card');
-                const mainLikeBtn = postCard.querySelector('.main-like-btn');
-                
-                fetch(`/ajax/react/${postId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({ reaction_type: reactionType })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Update the main like button based on user's current reaction
-                        if (data.user_reaction) {
-                            // User has a reaction - update button to show that reaction
-                            const reaction = reactionDisplay[data.user_reaction];
-                            mainLikeBtn.innerHTML = `<i class="fas ${reaction.icon} me-1" style="color: ${reaction.color};"></i> ${reaction.text} <span class="like-count" style="color: #718096;">${data.counts.like}</span>`;
-                            mainLikeBtn.style.color = reaction.color;
-                        } else {
-                            // No reaction - show default Like button
-                            mainLikeBtn.innerHTML = `<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> Like <span class="like-count" style="color: #718096;">${data.counts.like}</span>`;
-                            mainLikeBtn.style.color = '#718096';
-                        }
-                        
-                        // ===== FACEBOOK STYLE REACTION STATS =====
-                        const counts = data.counts;
-                        const totalReactions = Object.values(counts).reduce((a, b) => a + b, 0);
-                        
-                        // Find the most popular reaction
-                        let mostPopular = 0;
-                        let mostPopularType = 'like';
-                        for (const [type, count] of Object.entries(counts)) {
-                            if (count > mostPopular) {
-                                mostPopular = count;
-                                mostPopularType = type;
-                            }
-                        }
-                        
-                        // Update the reaction stats span with appropriate icon
-                        const reactionStatsSpan = postCard.querySelector('.reaction-stats');
-                        if (totalReactions > 0) {
-                            let iconHtml = '';
-                            
-                            switch(mostPopularType) {
-                                case 'like':
-                                    iconHtml = '<i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>';
-                                    break;
-                                case 'love':
-                                    iconHtml = '<i class="fas fa-heart me-1" style="color: #f56565;"></i>';
-                                    break;
-                                case 'haha':
-                                    iconHtml = '<i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>';
-                                    break;
-                                case 'wow':
-                                    iconHtml = '<i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>';
-                                    break;
-                                case 'sad':
-                                    iconHtml = '<i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>';
-                                    break;
-                                case 'angry':
-                                    iconHtml = '<i class="fas fa-angry me-1" style="color: #e53e3e;"></i>';
-                                    break;
-                            }
-                            
-                            reactionStatsSpan.innerHTML = iconHtml + ' <span class="reactions-count">' + totalReactions + '</span>';
-                        } else {
-                            reactionStatsSpan.innerHTML = '<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> <span class="reactions-count">0</span>';
-                        }
-                        
-                        // Hide the menu after selection
-                        reactionMenu.style.display = 'none';
-                        
-                        // Visual feedback on the selected emoji
-                        this.style.transform = 'scale(1.5)';
-                        setTimeout(() => this.style.transform = 'scale(1)', 200);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-            });
-            
-            // Hover effect on reaction options
-            option.addEventListener('mouseenter', function() {
-                this.style.transform = 'scale(1.3)';
-            });
-            
-            option.addEventListener('mouseleave', function() {
-                this.style.transform = 'scale(1)';
-            });
-        });
-    });
-});
-
-// ==================== LOAD REACTIONS LIST ====================
-document.addEventListener('DOMContentLoaded', function() {
-    // When reactions modal is opened
-    document.querySelectorAll('[data-bs-target^="#reactionsModal-"]').forEach(trigger => {
-        trigger.addEventListener('click', function(e) {
-            const postId = this.closest('.post-card').dataset.postId;
-            loadReactions(postId, 'all');
-        });
-    });
-    
-    // Handle reaction tab clicks
-    document.addEventListener('click', function(e) {
-        const tab = e.target.closest('.reaction-tab');
-        if (!tab) return;
-        
-        e.preventDefault();
-        
-        // Update active tab styling
-        const postId = tab.dataset.postId;
-        const container = tab.closest('.reaction-tabs');
-        container.querySelectorAll('.reaction-tab').forEach(t => {
-            t.style.color = '#718096';
-            t.style.fontWeight = '500';
-            t.style.borderBottom = 'none';
-        });
-        tab.style.color = '#3182ce';
-        tab.style.fontWeight = '600';
-        tab.style.borderBottom = '2px solid #3182ce';
-        
-        // Load reactions for selected tab
-        const reactionType = tab.dataset.tab;
-        loadReactions(postId, reactionType);
-    });
-});
-
-function loadReactions(postId, type) {
-    const listContainer = document.getElementById(`reactions-list-${postId}`);
-    const loadingSpinner = document.getElementById(`reactions-loading-${postId}`);
-    
-    // Show loading
-    loadingSpinner.style.display = 'block';
-    listContainer.innerHTML = '';
-    
-    fetch(`/ajax/post/${postId}/reactions/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Hide loading
-                loadingSpinner.style.display = 'none';
-                
-                // Build HTML for reactions
-                let html = '';
-                
-                // Filter reactions based on selected tab
-                let reactionsToShow = [];
-                if (type === 'all') {
-                    // Combine all reactions
-                    reactionsToShow = [
-                        ...data.reactions.like.map(u => ({...u, type: 'like', emoji: '👍'})),
-                        ...data.reactions.love.map(u => ({...u, type: 'love', emoji: '❤️'})),
-                        ...data.reactions.haha.map(u => ({...u, type: 'haha', emoji: '😂'})),
-                        ...data.reactions.wow.map(u => ({...u, type: 'wow', emoji: '😮'})),
-                        ...data.reactions.sad.map(u => ({...u, type: 'sad', emoji: '😢'})),
-                        ...data.reactions.angry.map(u => ({...u, type: 'angry', emoji: '😡'}))
-                    ];
-                } else {
-                    reactionsToShow = data.reactions[type].map(u => ({
-                        ...u, 
-                        type: type, 
-                        emoji: type === 'like' ? '👍' : 
-                               type === 'love' ? '❤️' :
-                               type === 'haha' ? '😂' :
-                               type === 'wow' ? '😮' :
-                               type === 'sad' ? '😢' : '😡'
-                    }));
-                }
-                
-                if (reactionsToShow.length === 0) {
-                    html = '<p class="text-center text-muted py-4">No reactions yet</p>';
-                } else {
-                    reactionsToShow.forEach(user => {
-                        html += `
-                            <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom: 1px solid #f0f0f0;">
-                                <div class="d-flex align-items-center">
-                                    <div class="profile-avatar me-3" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
-                                        ${user.profile_picture ? 
-                                            `<img src="${user.profile_picture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : 
-                                            user.username.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <strong>${user.username}</strong>
-                                        ${user.university ? 
-                                            `<span style="font-size: 0.7rem; background: rgba(102, 126, 234, 0.1); color: #4a5568; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">
-                                                ${user.university === 'ub' ? 'UB' : 
-                                                  user.university === 'buan' ? 'BUAN' :
-                                                  user.university === 'botho' ? 'BOTHO' :
-                                                  user.university === 'limkokwing' ? 'LIMKO' :
-                                                  user.university === 'baisago' ? 'ISAGO' :
-                                                  user.university === 'biust' ? 'BIUST' : 'VISITOR'}
-                                            </span>` : ''}
-                                        ${user.is_verified ? '<i class="fas fa-check-circle ms-1" style="color: #1DA1F2; font-size: 0.8rem;"></i>' : ''}
-                                    </div>
-                                </div>
-                                <span style="font-size: 1.2rem;">${user.emoji}</span>
-                            </div>
-                        `;
-                    });
-                }
-                
-                listContainer.innerHTML = html;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            loadingSpinner.style.display = 'none';
-            listContainer.innerHTML = '<p class="text-center text-danger py-4">Error loading reactions</p>';
-        });
-}
-
-// ==================== TOGGLE COMMENTS ====================
-document.addEventListener('click', function(e) {
-    const toggleBtn = e.target.closest('.comment-toggle-btn');
-    if (!toggleBtn) return;
-    
-    e.preventDefault();
-    
-    const postId = toggleBtn.dataset.postId;
-    const commentsSection = document.querySelector(`.comments-section-${postId}`);
-    
-    if (commentsSection) {
-        if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
-            commentsSection.style.display = 'block';
-            toggleBtn.innerHTML = '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Hide Comments';
-        } else {
-            commentsSection.style.display = 'none';
-            toggleBtn.innerHTML = '<i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment';
-        }
-    }
-});
-
-// ==================== ADD COMMENT ====================
-document.addEventListener('click', function(e) {
-    const submitBtn = e.target.closest('.submit-comment-btn');
-    if (!submitBtn) return;
-    
-    e.preventDefault();
-    
-    const postId = submitBtn.dataset.postId;
-    const input = document.querySelector(`.comment-input[data-post-id="${postId}"]`);
-    const content = input.value.trim();
-    
-    if (!content) return;
-    
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-    
-    fetch(`/ajax/comment/${postId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
-        },
-        body: JSON.stringify({ content: content })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const commentsContainer = document.querySelector(`.comments-container-${postId}`);
-            commentsContainer.insertAdjacentHTML('afterbegin', data.comment_html);
-            input.value = '';
-            
-            // Update comment count
-            const commentCount = document.querySelector(`.comment-toggle-btn[data-post-id="${postId}"] .comments-count`);
-            if (commentCount) {
-                commentCount.textContent = parseInt(commentCount.textContent) + 1;
-            }
-        }
-    })
-    .finally(()
+                    <!-- Reactions List -->
+                    <div id="reactions-list-{{ post.id }}" class="reactions-list" style="padding: 10px 15
