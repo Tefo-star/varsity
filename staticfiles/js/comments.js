@@ -5,8 +5,9 @@
     function initCommentFeatures() {
         initCommentToggles();
         initCommentSubmits();
-        initReplyFeatures(); // Comment reply features
-        initPostReplyFeatures(); // Post reply features (NEW)
+        initReplyFeatures();
+        initPostReplyFeatures();
+        initPostReplies();
     }
     
     function initCommentToggles() {
@@ -28,21 +29,44 @@
         });
     }
     
-    // ==================== REPLY TO POST (NEW) ====================
+    // ==================== WHATSAPP-STYLE POST REPLIES ====================
+    function initPostReplies() {
+        document.querySelectorAll('.toggle-replies-btn').forEach(btn => {
+            btn.removeEventListener('click', toggleReplies);
+            btn.addEventListener('click', toggleReplies);
+        });
+    }
+    
+    function toggleReplies(e) {
+        e.preventDefault();
+        const btn = e.currentTarget;
+        const postId = btn.dataset.postId;
+        const repliesContainer = document.querySelector(`.replies-container-${postId}`);
+        const icon = btn.querySelector('i');
+        
+        if (repliesContainer.style.display === 'none' || repliesContainer.style.display === '') {
+            repliesContainer.style.display = 'block';
+            icon.className = 'fas fa-chevron-down me-1';
+            btn.innerHTML = btn.innerHTML.replace('View', 'Hide');
+        } else {
+            repliesContainer.style.display = 'none';
+            icon.className = 'fas fa-chevron-right me-1';
+            btn.innerHTML = btn.innerHTML.replace('Hide', 'View');
+        }
+    }
+    
+    // ==================== REPLY TO POST ====================
     function initPostReplyFeatures() {
-        // Reply button for posts
         document.querySelectorAll('.reply-to-post-btn').forEach(btn => {
             btn.removeEventListener('click', handlePostReplyToggle);
             btn.addEventListener('click', handlePostReplyToggle);
         });
         
-        // Submit reply for posts
         document.querySelectorAll('.submit-reply-to-post-btn').forEach(btn => {
             btn.removeEventListener('click', handlePostReplySubmit);
             btn.addEventListener('click', handlePostReplySubmit);
         });
         
-        // Enter key for post reply input
         document.querySelectorAll('.reply-to-post-input').forEach(input => {
             input.removeEventListener('keypress', handlePostReplyKeyPress);
             input.addEventListener('keypress', handlePostReplyKeyPress);
@@ -81,7 +105,6 @@
             return;
         }
         
-        // Disable button
         btn.disabled = true;
         const originalText = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -92,22 +115,37 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCsrfToken()
             },
-            body: JSON.stringify({ 
-                content: content
-            })
+            body: JSON.stringify({ content: content })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Add the new reply post to the feed (at the top)
+                // INSERT AT THE TOP of the feed
                 const postsContainer = document.getElementById('posts-container');
-                postsContainer.insertAdjacentHTML('afterbegin', data.post_html);
+                postsContainer.insertAdjacentHTML('afterbegin', data.reply_html);
+                
+                // Update the original post's reply count
+                const originalPost = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+                if (originalPost) {
+                    const repliesSection = originalPost.querySelector('.replies-section');
+                    if (repliesSection) {
+                        const toggleBtn = repliesSection.querySelector('.toggle-replies-btn');
+                        const count = parseInt(toggleBtn.textContent.match(/\d+/)[0]) || 0;
+                        toggleBtn.innerHTML = `<i class="fas fa-chevron-right me-1"></i> View ${count + 1} repl${count + 1 === 1 ? 'y' : 'ies'}`;
+                    }
+                }
                 
                 // Clear input and hide form
                 input.value = '';
                 document.querySelector(`.reply-to-post-form-${postId}`).style.display = 'none';
                 
-                showNotification('Reply posted!', 'success');
+                showNotification('Reply posted at the top!', 'success');
+                
+                // Scroll to the new reply
+                const newReply = document.querySelector(`.post-card[data-post-id="${data.reply_id}"]`);
+                if (newReply) {
+                    newReply.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             } else {
                 showNotification('Error: ' + (data.error || 'Failed'), 'error');
             }
@@ -132,27 +170,23 @@
         }
     }
     
-    // ==================== REPLY TO COMMENT (WHATSAPP STYLE) ====================
+    // ==================== REPLY TO COMMENT ====================
     function initReplyFeatures() {
-        // Reply toggle buttons
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.removeEventListener('click', handleReplyToggle);
             btn.addEventListener('click', handleReplyToggle);
         });
         
-        // Reply submit buttons
         document.querySelectorAll('.submit-reply-btn').forEach(btn => {
             btn.removeEventListener('click', handleReplySubmit);
             btn.addEventListener('click', handleReplySubmit);
         });
         
-        // View replies toggle
         document.querySelectorAll('.view-replies-btn').forEach(btn => {
             btn.removeEventListener('click', handleViewReplies);
             btn.addEventListener('click', handleViewReplies);
         });
         
-        // Reply input enter key
         document.querySelectorAll('.reply-input').forEach(input => {
             input.removeEventListener('keypress', handleReplyKeyPress);
             input.addEventListener('keypress', handleReplyKeyPress);
@@ -192,7 +226,6 @@
             return;
         }
         
-        // Disable button
         btn.disabled = true;
         const originalText = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -211,20 +244,16 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Add reply to the replies container
                 const repliesContainer = document.querySelector(`.replies-${parentId}`);
                 repliesContainer.insertAdjacentHTML('beforeend', data.comment_html);
                 
-                // Show replies container if hidden
                 if (repliesContainer.style.display === 'none' || repliesContainer.style.display === '') {
                     repliesContainer.style.display = 'block';
                 }
                 
-                // Clear input and hide form
                 input.value = '';
                 document.querySelector(`.reply-form-${parentId}`).style.display = 'none';
                 
-                // Update reply count button
                 const viewBtn = document.querySelector(`.view-replies-btn[data-comment-id="${parentId}"]`);
                 if (viewBtn) {
                     const currentCount = parseInt(viewBtn.textContent.match(/\d+/)[0]) || 0;

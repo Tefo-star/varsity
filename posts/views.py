@@ -32,8 +32,9 @@ def get_most_popular_reaction(counts):
 
 # ==================== HOME FEED ====================
 def home(request):
-    posts_list = Post.objects.filter(is_archived=False, parent=None).select_related(
-        'author', 'author__activity'
+    # Get ALL posts (including replies) ordered by most recent
+    posts_list = Post.objects.filter(is_archived=False).select_related(
+        'author', 'author__activity', 'parent__author', 'parent__author__activity'
     ).prefetch_related(
         'comments', 'reactions', 'shares', 'saves', 'replies'
     ).annotate(
@@ -41,7 +42,7 @@ def home(request):
         comments_count=Count('comments'),
         total_shares=Count('shares'),
         total_saves=Count('saves')
-    ).order_by('-created_at')
+    ).order_by('-created_at')  # Most recent first - puts replies at TOP
     
     paginator = Paginator(posts_list, 10)
     page = request.GET.get('page', 1)
@@ -74,8 +75,8 @@ def home(request):
 # ==================== INFINITE SCROLL ====================
 def load_more_posts(request):
     page = request.GET.get('page', 1)
-    posts_list = Post.objects.filter(is_archived=False, parent=None).select_related(
-        'author', 'author__activity'
+    posts_list = Post.objects.filter(is_archived=False).select_related(
+        'author', 'author__activity', 'parent__author', 'parent__author__activity'
     ).prefetch_related(
         'comments', 'reactions', 'shares', 'saves', 'replies'
     ).annotate(
@@ -374,6 +375,7 @@ def ajax_reply_to_post(request, post_id):
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
         
+        # Create a reply post
         reply = Post.objects.create(
             author=request.user,
             post_type='TEXT',
@@ -384,9 +386,11 @@ def ajax_reply_to_post(request, post_id):
             reply_count=0
         )
         
+        # Update reply count on original
         original.reply_count += 1
         original.save(update_fields=['reply_count'])
         
+        # Create notification
         if original.author != request.user:
             Notification.objects.create(
                 recipient=original.author,
@@ -395,9 +399,12 @@ def ajax_reply_to_post(request, post_id):
                 post=original
             )
         
-        reply_html = render_to_string('posts/_post_reply.html', {
+        # Render the new reply - this will now show the quoted original post
+        reply_html = render_to_string('posts/_post_card.html', {
             'post': reply,
-            'user': request.user
+            'user': request.user,
+            'user_reaction': None,
+            'user_saved': False
         }, request=request)
         
         return JsonResponse({

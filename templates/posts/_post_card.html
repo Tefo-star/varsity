@@ -1,6 +1,33 @@
 {% load static %}
 
-<div class="glass-card post-card mb-4" data-post-id="{{ post.id }}">
+<div class="glass-card post-card mb-4" 
+     data-post-id="{{ post.id }}" 
+     {% if post.parent %}data-reply="true"{% endif %}>
+    
+    <!-- If this is a reply, show the original post in a WhatsApp-style quote box -->
+    {% if post.parent %}
+        <div class="replied-to-box mb-3 p-3" style="background: rgba(102, 126, 234, 0.1); border-left: 4px solid #667eea; border-radius: 12px; font-size: 0.9rem;">
+            <div class="d-flex align-items-center mb-2">
+                <div class="profile-avatar me-2" style="width: 20px; height: 20px; font-size: 0.6rem;">
+                    {% if post.parent.author.activity.profile_picture %}
+                        <img src="{{ post.parent.author.activity.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                        {{ post.parent.author.username|first|upper }}
+                    {% endif %}
+                </div>
+                <small>
+                    <strong>{{ post.parent.author.username }}</strong>
+                    <span class="text-muted">· {{ post.parent.created_at|timesince }} ago</span>
+                </small>
+            </div>
+            <p class="mb-0 text-muted" style="font-size: 0.9rem;">{{ post.parent.content|truncatechars:100 }}</p>
+            <small class="text-muted mt-1 d-block">
+                <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i>
+                {{ post.author.username }} replied
+            </small>
+        </div>
+    {% endif %}
+
     <!-- Post Header -->
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div class="d-flex align-items-center">
@@ -128,7 +155,7 @@
     </div>
 
     <!-- WhatsApp-style Replies -->
-    {% if post.reply_count > 0 %}
+    {% if post.reply_count > 0 and not post.parent %}
         <div class="replies-section mb-3">
             <div class="d-flex align-items-center mb-2">
                 <button class="btn btn-link p-0 toggle-replies-btn" data-post-id="{{ post.id }}" style="color: #667eea;">
