@@ -73,8 +73,8 @@
     <!-- Post Stats - Facebook Style with Dynamic Icon -->
     <div class="d-flex justify-content-between mb-2" style="color: #718096; font-size: 0.9rem;">
         <div class="d-flex align-items-center">
-            <!-- Reaction Stats with Icon (Facebook Style) -->
-            <span class="me-3 reaction-stats" data-post-id="{{ post.id }}">
+            <!-- Reaction Stats with Icon (Facebook Style) - Now Clickable -->
+            <span class="me-3 reaction-stats" data-post-id="{{ post.id }}" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#reactionsModal-{{ post.id }}">
                 {% with counts=post.get_reaction_counts %}
                     {% with total=counts.like|add:counts.love|add:counts.haha|add:counts.wow|add:counts.sad|add:counts.angry %}
                         {% if total > 0 %}
@@ -230,6 +230,54 @@
                 </div>
             </div>
         {% endif %}
+    </div>
+
+    <!-- Reactions List Modal (NEW) -->
+    <div class="modal fade" id="reactionsModal-{{ post.id }}" tabindex="-1" aria-labelledby="reactionsModalLabel-{{ post.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 20px; background: white;">
+                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0; padding: 15px 20px;">
+                    <h5 class="modal-title" id="reactionsModalLabel-{{ post.id }}" style="font-weight: 600;">Reactions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
+                    <!-- Reaction Tabs -->
+                    <div class="reaction-tabs" style="display: flex; border-bottom: 1px solid #e2e8f0; padding: 10px 15px; position: sticky; top: 0; background: white; z-index: 10;">
+                        <button class="reaction-tab active" data-tab="all" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 600; color: #3182ce; border-bottom: 2px solid #3182ce;">
+                            All <span class="reaction-tab-count all-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span>
+                        </button>
+                        <button class="reaction-tab" data-tab="like" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
+                            👍 <span class="reaction-tab-count like-count">{{ post.get_reaction_counts.like }}</span>
+                        </button>
+                        <button class="reaction-tab" data-tab="love" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
+                            ❤️ <span class="reaction-tab-count love-count">{{ post.get_reaction_counts.love }}</span>
+                        </button>
+                        <button class="reaction-tab" data-tab="haha" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
+                            😂 <span class="reaction-tab-count haha-count">{{ post.get_reaction_counts.haha }}</span>
+                        </button>
+                        <button class="reaction-tab" data-tab="wow" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
+                            😮 <span class="reaction-tab-count wow-count">{{ post.get_reaction_counts.wow }}</span>
+                        </button>
+                        <button class="reaction-tab" data-tab="sad" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
+                            😢 <span class="reaction-tab-count sad-count">{{ post.get_reaction_counts.sad }}</span>
+                        </button>
+                        <button class="reaction-tab" data-tab="angry" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
+                            😡 <span class="reaction-tab-count angry-count">{{ post.get_reaction_counts.angry }}</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Reactions List Container -->
+                    <div id="reactions-list-{{ post.id }}" class="reactions-list" style="padding: 10px 15px;">
+                        <!-- Loading Spinner -->
+                        <div class="text-center py-4" id="reactions-loading-{{ post.id }}">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -396,6 +444,125 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// ==================== LOAD REACTIONS LIST ====================
+document.addEventListener('DOMContentLoaded', function() {
+    // When reactions modal is opened
+    document.querySelectorAll('[data-bs-target^="#reactionsModal-"]').forEach(trigger => {
+        trigger.addEventListener('click', function(e) {
+            const postId = this.closest('.post-card').dataset.postId;
+            loadReactions(postId, 'all');
+        });
+    });
+    
+    // Handle reaction tab clicks
+    document.addEventListener('click', function(e) {
+        const tab = e.target.closest('.reaction-tab');
+        if (!tab) return;
+        
+        e.preventDefault();
+        
+        // Update active tab styling
+        const postId = tab.dataset.postId;
+        const container = tab.closest('.reaction-tabs');
+        container.querySelectorAll('.reaction-tab').forEach(t => {
+            t.style.color = '#718096';
+            t.style.fontWeight = '500';
+            t.style.borderBottom = 'none';
+        });
+        tab.style.color = '#3182ce';
+        tab.style.fontWeight = '600';
+        tab.style.borderBottom = '2px solid #3182ce';
+        
+        // Load reactions for selected tab
+        const reactionType = tab.dataset.tab;
+        loadReactions(postId, reactionType);
+    });
+});
+
+function loadReactions(postId, type) {
+    const listContainer = document.getElementById(`reactions-list-${postId}`);
+    const loadingSpinner = document.getElementById(`reactions-loading-${postId}`);
+    
+    // Show loading
+    loadingSpinner.style.display = 'block';
+    listContainer.innerHTML = '';
+    
+    fetch(`/ajax/post/${postId}/reactions/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide loading
+                loadingSpinner.style.display = 'none';
+                
+                // Build HTML for reactions
+                let html = '';
+                
+                // Filter reactions based on selected tab
+                let reactionsToShow = [];
+                if (type === 'all') {
+                    // Combine all reactions
+                    reactionsToShow = [
+                        ...data.reactions.like.map(u => ({...u, type: 'like', emoji: '👍'})),
+                        ...data.reactions.love.map(u => ({...u, type: 'love', emoji: '❤️'})),
+                        ...data.reactions.haha.map(u => ({...u, type: 'haha', emoji: '😂'})),
+                        ...data.reactions.wow.map(u => ({...u, type: 'wow', emoji: '😮'})),
+                        ...data.reactions.sad.map(u => ({...u, type: 'sad', emoji: '😢'})),
+                        ...data.reactions.angry.map(u => ({...u, type: 'angry', emoji: '😡'}))
+                    ];
+                } else {
+                    reactionsToShow = data.reactions[type].map(u => ({
+                        ...u, 
+                        type: type, 
+                        emoji: type === 'like' ? '👍' : 
+                               type === 'love' ? '❤️' :
+                               type === 'haha' ? '😂' :
+                               type === 'wow' ? '😮' :
+                               type === 'sad' ? '😢' : '😡'
+                    }));
+                }
+                
+                if (reactionsToShow.length === 0) {
+                    html = '<p class="text-center text-muted py-4">No reactions yet</p>';
+                } else {
+                    reactionsToShow.forEach(user => {
+                        html += `
+                            <div class="d-flex align-items-center justify-content-between py-2" style="border-bottom: 1px solid #f0f0f0;">
+                                <div class="d-flex align-items-center">
+                                    <div class="profile-avatar me-3" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">
+                                        ${user.profile_picture ? 
+                                            `<img src="${user.profile_picture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : 
+                                            user.username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <strong>${user.username}</strong>
+                                        ${user.university ? 
+                                            `<span style="font-size: 0.7rem; background: rgba(102, 126, 234, 0.1); color: #4a5568; padding: 2px 8px; border-radius: 12px; margin-left: 8px;">
+                                                ${user.university === 'ub' ? 'UB' : 
+                                                  user.university === 'buan' ? 'BUAN' :
+                                                  user.university === 'botho' ? 'BOTHO' :
+                                                  user.university === 'limkokwing' ? 'LIMKO' :
+                                                  user.university === 'baisago' ? 'ISAGO' :
+                                                  user.university === 'biust' ? 'BIUST' : 'VISITOR'}
+                                            </span>` : ''}
+                                        ${user.is_verified ? '<i class="fas fa-check-circle ms-1" style="color: #1DA1F2; font-size: 0.8rem;"></i>' : ''}
+                                    </div>
+                                </div>
+                                <span style="font-size: 1.2rem;">${user.emoji}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                listContainer.innerHTML = html;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingSpinner.style.display = 'none';
+            listContainer.innerHTML = '<p class="text-center text-danger py-4">Error loading reactions</p>';
+        });
+}
+
 // ==================== TOGGLE COMMENTS ====================
 document.addEventListener('click', function(e) {
     const toggleBtn = e.target.closest('.comment-toggle-btn');
@@ -455,200 +622,4 @@ document.addEventListener('click', function(e) {
             }
         }
     })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Post';
-    });
-});
-
-// ==================== SAVE POST ====================
-document.addEventListener('click', function(e) {
-    const saveBtn = e.target.closest('.save-btn');
-    if (!saveBtn) return;
-    
-    e.preventDefault();
-    
-    const postId = saveBtn.dataset.postId;
-    const countSpan = document.querySelector(`.post-card[data-post-id="${postId}"] .saves-count`);
-    
-    fetch(`/ajax/post/${postId}/save/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
-        },
-        body: JSON.stringify({})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (data.is_saved) {
-                saveBtn.classList.add('active');
-                saveBtn.style.color = '#ecc94b';
-                saveBtn.querySelector('i').style.color = '#ecc94b';
-            } else {
-                saveBtn.classList.remove('active');
-                saveBtn.style.color = '#4a5568';
-                saveBtn.querySelector('i').style.color = '#718096';
-            }
-            if (countSpan) {
-                countSpan.textContent = data.save_count;
-            }
-        }
-    });
-});
-
-// ==================== SHARE POST ====================
-document.addEventListener('click', function(e) {
-    const shareBtn = e.target.closest('.share-btn');
-    if (!shareBtn) return;
-    
-    e.preventDefault();
-    
-    const postId = shareBtn.dataset.postId;
-    const countSpan = document.querySelector(`.post-card[data-post-id="${postId}"] .shares-count`);
-    
-    fetch(`/ajax/post/${postId}/share/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
-        },
-        body: JSON.stringify({})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success && countSpan) {
-            countSpan.textContent = data.share_count;
-            
-            // Show share success message
-            shareBtn.insertAdjacentHTML('afterend', 
-                '<div class="share-toast">Link copied to clipboard!</div>');
-            setTimeout(() => document.querySelector('.share-toast')?.remove(), 2000);
-        }
-    });
-});
-
-// ==================== VIEW ALL COMMENTS ====================
-document.addEventListener('click', function(e) {
-    const viewAllBtn = e.target.closest('.view-all-comments');
-    if (!viewAllBtn) return;
-    
-    e.preventDefault();
-    
-    const postId = viewAllBtn.dataset.postId;
-    window.location.href = `/post/${postId}/`;
-});
-
-// ==================== IMAGE MODAL FUNCTION ====================
-function openImageModal(imageUrl) {
-    // This function should be defined in your base template or home.html
-    // If not available, this will do nothing
-    if (typeof window.openImageModal === 'function') {
-        window.openImageModal(imageUrl);
-    } else {
-        console.log('Image modal function not available');
-    }
-}
-</script>
-
-<style>
-.reaction-btn.active {
-    color: #667eea !important;
-    font-weight: 600 !important;
-}
-
-.reaction-btn.active i {
-    color: #667eea !important;
-}
-
-.save-btn.active {
-    color: #ecc94b !important;
-}
-
-.save-btn.active i {
-    color: #ecc94b !important;
-}
-
-.comment-like-btn.active {
-    color: #667eea !important;
-}
-
-.glass-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    border-radius: 15px;
-    transition: transform 0.2s;
-}
-
-.glass-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* Reaction Menu Styles */
-.reaction-menu {
-    background: white;
-    border-radius: 40px;
-    padding: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    animation: slideUp 0.2s ease;
-    z-index: 1000;
-}
-
-.reaction-menu .reaction-option {
-    display: inline-block;
-    margin: 0 2px;
-    transition: transform 0.2s;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    outline: none;
-}
-
-.reaction-menu .reaction-option:hover {
-    transform: scale(1.3) !important;
-}
-
-.reaction-menu .reaction-option span {
-    font-size: 28px;
-    line-height: 1;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.share-toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    backdrop-filter: blur(10px);
-    padding: 10px 20px;
-    border-radius: 50px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    z-index: 9999;
-    animation: slideUp 0.3s ease;
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-    .reaction-menu {
-        position: fixed !important;
-        bottom: auto !important;
-        top: auto !important;
-    }
-}
-</style>
+    .finally(()
