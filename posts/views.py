@@ -363,7 +363,7 @@ def ajax_add_comment(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== REPLY TO POST (WHATSAPP STYLE) ====================
+# ==================== REPLY TO POST (WHATSAPP STYLE - FIXED) ====================
 @login_required
 @require_POST
 def ajax_reply_to_post(request, post_id):
@@ -375,11 +375,11 @@ def ajax_reply_to_post(request, post_id):
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
         
-        # Create a reply post
+        # Create a reply post with EMPTY title (so it won't show bold text)
         reply = Post.objects.create(
             author=request.user,
             post_type='TEXT',
-            title=f"Reply to {original.author.username}",
+            title="",  # ← EMPTY TITLE - no bold text!
             content=content.strip(),
             is_archived=False,
             parent=original,
@@ -399,7 +399,7 @@ def ajax_reply_to_post(request, post_id):
                 post=original
             )
         
-        # Render the new reply - this will now show the quoted original post
+        # Render the new reply - this will now show only the quote box
         reply_html = render_to_string('posts/_post_card.html', {
             'post': reply,
             'user': request.user,
