@@ -4,33 +4,8 @@
 {% block content %}
 <div class="container">
     <div class="row">
-        <!-- Left Sidebar - Suggestions -->
-        <div class="col-lg-3 d-none d-lg-block">
-            <div class="glass-card sticky-top" style="top: 20px;">
-                <h5 class="mb-3">Suggested for you</h5>
-                {% for suggestion in suggested_users %}
-                <div class="d-flex align-items-center mb-3">
-                    <div class="profile-avatar me-2" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2);">
-                        {% if suggestion.activity.profile_picture %}
-                            <img src="{{ suggestion.activity.profile_picture.url }}" alt="{{ suggestion.username }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                        {% else %}
-                            <span style="color: white; font-weight: 600; line-height: 40px;">{{ suggestion.username|first|upper }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="flex-grow-1">
-                        <strong>{{ suggestion.username }}</strong>
-                        <small class="text-muted d-block">{{ suggestion.activity.follower_count }} followers</small>
-                    </div>
-                    <button class="btn btn-sm btn-create follow-suggestion-btn" data-username="{{ suggestion.username }}">Follow</button>
-                </div>
-                {% empty %}
-                <p class="text-muted">No suggestions yet</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Main Feed -->
-        <div class="col-lg-6">
+        <!-- Main Feed - Centered -->
+        <div class="col-lg-8 mx-auto">
             <!-- Create Post Card -->
             {% if user.is_authenticated %}
             <div class="glass-card mb-4">
@@ -86,23 +61,6 @@
             <!-- End of Feed -->
             <div id="end-of-feed" class="text-center py-4 text-muted" style="display: none;">
                 <i class="fas fa-check-circle me-2"></i>You're all caught up!
-            </div>
-        </div>
-
-        <!-- Right Sidebar - Trending -->
-        <div class="col-lg-3 d-none d-lg-block">
-            <div class="glass-card sticky-top" style="top: 20px;">
-                <h5 class="mb-3">Trending</h5>
-                {% for trending in trending_posts %}
-                <a href="{% url 'post_detail' trending.id %}" class="text-decoration-none">
-                    <div class="mb-3 p-2" style="background: rgba(0,0,0,0.02); border-radius: 10px;">
-                        <strong>{{ trending.title|truncatechars:30 }}</strong>
-                        <small class="text-muted d-block">{{ trending.reaction_count }} reactions</small>
-                    </div>
-                </a>
-                {% empty %}
-                <p class="text-muted">No trending posts yet</p>
-                {% endfor %}
             </div>
         </div>
     </div>
@@ -220,10 +178,12 @@ document.addEventListener('click', function(e) {
     const postId = toggleBtn.dataset.postId;
     const commentsSection = document.querySelector(`.comments-section-${postId}`);
     
-    if (commentsSection.style.display === 'none') {
+    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
         commentsSection.style.display = 'block';
+        toggleBtn.innerHTML = '<i class="fas fa-comment me-1"></i> Hide Comments';
     } else {
         commentsSection.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-comment me-1"></i> Comment';
     }
 });
 
@@ -397,36 +357,6 @@ document.addEventListener('click', function(e) {
     });
 });
 
-// ==================== FOLLOW USER ====================
-document.addEventListener('click', function(e) {
-    const followBtn = e.target.closest('.follow-suggestion-btn');
-    if (!followBtn) return;
-    
-    e.preventDefault();
-    
-    const username = followBtn.dataset.username;
-    
-    fetch(`/profile/${username}/follow/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            if (data.is_following) {
-                followBtn.textContent = 'Following';
-                followBtn.classList.add('active');
-            } else {
-                followBtn.textContent = 'Follow';
-                followBtn.classList.remove('active');
-            }
-        }
-    });
-});
-
 // ==================== IMAGE MODAL ====================
 function openImageModal(imageUrl) {
     document.getElementById('modalImage').src = imageUrl;
@@ -479,7 +409,7 @@ document.addEventListener('click', function(e) {
 
 <style>
 .reaction-btn.active {
-    color: var(--neon-purple) !important;
+    color: #667eea !important;
     font-weight: 600;
 }
 
@@ -488,7 +418,7 @@ document.addEventListener('click', function(e) {
 }
 
 .comment-like-btn.active {
-    color: var(--neon-purple) !important;
+    color: #667eea !important;
 }
 
 .share-toast {
@@ -529,6 +459,21 @@ document.addEventListener('click', function(e) {
     0% { transform: scale(1); }
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+    transition: transform 0.2s;
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 </style>
 {% endblock %}

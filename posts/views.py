@@ -65,32 +65,10 @@ def home(request):
         
         request.session['last_seen'] = timezone.now().isoformat()
     
-    # Get trending posts (most reactions in last 7 days)
-    week_ago = timezone.now() - timedelta(days=7)
-    trending_posts = Post.objects.filter(
-        created_at__gte=week_ago,
-        is_archived=False
-    ).annotate(
-        reaction_count=Count('reactions')
-    ).order_by('-reaction_count')[:5]
-    
-    # Get suggested users to follow
-    suggested_users = []
-    if request.user.is_authenticated:
-        following_ids = Follow.objects.filter(
-            follower=request.user
-        ).values_list('following_id', flat=True)
-        
-        suggested_users = User.objects.exclude(
-            id__in=list(following_ids) + [request.user.id]
-        ).filter(is_active=True)[:5]
-    
     context = {
         'posts': posts,
         'online_count': online_count,
         'new_posts_count': new_posts_count,
-        'trending_posts': trending_posts,
-        'suggested_users': suggested_users,
     }
     return render(request, 'posts/home.html', context)
 
