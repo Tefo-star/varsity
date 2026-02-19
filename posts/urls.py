@@ -29,7 +29,7 @@ urlpatterns = [
     # API endpoints
     path('api/online-count/', views.online_users_api, name='online_users_api'),
     
-    # AJAX endpoints
+    # AJAX endpoints - CURRENT ACTIVE FEATURES
     path('ajax/react/<int:post_id>/', views.ajax_react_to_post, name='ajax_react_to_post'),
     path('ajax/comment/<int:post_id>/', views.ajax_add_comment, name='ajax_add_comment'),
     path('ajax/comment/<int:comment_id>/delete/', views.ajax_delete_comment, name='ajax_delete_comment'),
@@ -38,10 +38,6 @@ urlpatterns = [
     path('ajax/post/<int:post_id>/report/', views.ajax_report_post, name='ajax_report_post'),
     path('ajax/post/<int:post_id>/reactions/', views.get_post_reactions, name='get_post_reactions'),
     path('ajax/post/<int:post_id>/reply/', views.ajax_reply_to_post, name='ajax_reply_to_post'),
-    
-    # Legacy endpoints (keeping for backward compatibility)
-    path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
-    path('comment/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
     
     # Migration helpers
     path('run-migrations/', views.run_posts_migrations, name='run_posts_migrations'),
