@@ -8,7 +8,7 @@
     {% if post.parent %}
         <div class="replied-to-box mb-3 p-3" style="background: rgba(102, 126, 234, 0.1); border-left: 4px solid #667eea; border-radius: 12px; font-size: 0.9rem;">
             <div class="d-flex align-items-center mb-2">
-                <div class="profile-avatar me-2" style="width: 20px; height: 20px; font-size: 0.6rem;">
+                <div class="profile-avatar me-2" style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.6rem; overflow: hidden;">
                     {% if post.parent.author.activity.profile_picture %}
                         <img src="{{ post.parent.author.activity.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
                     {% else %}
@@ -32,9 +32,9 @@
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div class="d-flex align-items-center">
             <a href="{% url 'user_profile' post.author.username %}">
-                <div class="profile-avatar">
+                <div class="profile-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; overflow: hidden;">
                     {% if post.author.activity.profile_picture %}
-                        <img src="{{ post.author.activity.profile_picture.url }}" alt="{{ post.author.username }}">
+                        <img src="{{ post.author.activity.profile_picture.url }}" alt="{{ post.author.username }}" style="width: 100%; height: 100%; object-fit: cover;">
                     {% else %}
                         {{ post.author.username|first|upper }}
                     {% endif %}
@@ -46,8 +46,7 @@
                         <strong>{{ post.author.username }}</strong>
                     </a>
                     {% if post.author.activity.university %}
-                        <span class="uni-badge uni-{{ post.author.activity.university }}">
-                            <i class="fas fa-graduation-cap me-1"></i>
+                        <span class="uni-badge uni-{{ post.author.activity.university }}" style="font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; background: rgba(102, 126, 234, 0.1); color: #4a5568; display: inline-block;">
                             {% if post.author.activity.university == 'ub' %}UB{% endif %}
                             {% if post.author.activity.university == 'buan' %}BUAN{% endif %}
                             {% if post.author.activity.university == 'botho' %}BOTHO{% endif %}
@@ -58,7 +57,7 @@
                         </span>
                     {% endif %}
                     {% if post.author.activity.is_verified %}
-                        <span class="verified-badge"><i class="fas fa-check-circle"></i></span>
+                        <span class="verified-badge"><i class="fas fa-check-circle" style="color: #1DA1F2;"></i></span>
                     {% endif %}
                 </div>
                 <div class="text-muted small">
@@ -68,9 +67,9 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary">{{ post.get_post_type_display }}</span>
+            <span class="badge bg-primary" style="background: linear-gradient(135deg, #667eea, #764ba2) !important;">{{ post.get_post_type_display }}</span>
             <div class="dropdown">
-                <button class="btn btn-link p-0" data-bs-toggle="dropdown">
+                <button class="btn btn-link p-0" data-bs-toggle="dropdown" style="color: #718096;">
                     <i class="fas fa-ellipsis-h"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
@@ -93,17 +92,27 @@
 
     <!-- Post Content -->
     {% if post.content %}
-        <div class="mb-3">{{ post.content|linebreaks }}</div>
+        <div class="mb-3" style="color: #4a5568;">{{ post.content|linebreaks }}</div>
     {% endif %}
 
     <!-- Post Image -->
     {% if post.image %}
         <div class="text-center mb-3">
-            <img src="{{ post.image.url }}" class="img-fluid rounded" style="max-height: 300px; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
+            <img src="{{ post.image.url }}" class="img-fluid rounded" style="max-height: 300px; cursor: pointer; border-radius: 15px;" onclick="openImageModal('{{ post.image.url }}')">
         </div>
     {% endif %}
 
-    <!-- Post Stats - SHARE COUNTER REMOVED -->
+    <!-- Post Video (NEW - from upload) -->
+    {% if post.video %}
+        <div class="text-center mb-3">
+            <video controls style="max-width: 100%; max-height: 400px; border-radius: 15px;">
+                <source src="{{ post.video.url }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    {% endif %}
+
+    <!-- Post Stats -->
     <div class="d-flex justify-content-between small text-muted mb-2">
         <div class="d-flex gap-3">
             <span class="cursor-pointer" onclick="showReactions('{{ post.id }}')">
@@ -116,40 +125,49 @@
         </div>
     </div>
 
-    <!-- Action Bar - SHARE BUTTON REMOVED -->
-    <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3">
+    <!-- Action Bar -->
+    <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3" style="border-color: #e2e8f0 !important;">
         <!-- Like Button with Hover -->
         <div class="reaction-container position-relative">
-            <button class="btn btn-link text-decoration-none p-0 main-like-btn" data-post-id="{{ post.id }}">
-                <i class="fas fa-thumbs-up me-1"></i> Like <span class="like-count">{{ post.get_reaction_counts.like }}</span>
+            <button class="btn btn-link text-decoration-none p-0 main-like-btn" data-post-id="{{ post.id }}" style="color: {% if user_reaction %}{% if user_reaction == 'love' %}#f56565{% elif user_reaction == 'haha' %}#ecc94b{% elif user_reaction == 'wow' %}#9f7aea{% elif user_reaction == 'sad' %}#4299e1{% elif user_reaction == 'angry' %}#e53e3e{% else %}#3182ce{% endif %}{% else %}#718096{% endif %};">
+                <i class="fas {% if user_reaction == 'love' %}fa-heart{% elif user_reaction == 'haha' %}fa-laugh{% elif user_reaction == 'wow' %}fa-surprise{% elif user_reaction == 'sad' %}fa-sad-tear{% elif user_reaction == 'angry' %}fa-angry{% else %}fa-thumbs-up{% endif %} me-1"></i>
+                {% if user_reaction == 'love' %}Love
+                {% elif user_reaction == 'haha' %}Haha
+                {% elif user_reaction == 'wow' %}Wow
+                {% elif user_reaction == 'sad' %}Sad
+                {% elif user_reaction == 'angry' %}Angry
+                {% else %}Like{% endif %}
+                <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
             </button>
-            <div class="reaction-hover-menu position-absolute bg-white rounded-pill shadow p-2" style="display: none; bottom: 100%; left: 0; z-index: 10;">
-                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="love" title="Love">❤️</button>
-                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="haha" title="Haha">😂</button>
-                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="wow" title="Wow">😮</button>
-                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="sad" title="Sad">😢</button>
-                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="angry" title="Angry">😡</button>
+            <div class="reaction-hover-menu position-absolute bg-white rounded-pill shadow p-2" style="display: none; bottom: 100%; left: 0; z-index: 10; white-space: nowrap;">
+                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="love" title="Love" style="font-size: 24px;">❤️</button>
+                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="haha" title="Haha" style="font-size: 24px;">😂</button>
+                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="wow" title="Wow" style="font-size: 24px;">😮</button>
+                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="sad" title="Sad" style="font-size: 24px;">😢</button>
+                <button class="reaction-option btn btn-link p-0 mx-1" data-post-id="{{ post.id }}" data-reaction="angry" title="Angry" style="font-size: 24px;">😡</button>
             </div>
         </div>
         
-        <button class="btn btn-link text-decoration-none p-0 comment-toggle-btn" data-post-id="{{ post.id }}">
+        <button class="btn btn-link text-decoration-none p-0 comment-toggle-btn" data-post-id="{{ post.id }}" style="color: #4a5568;">
             <i class="fas fa-comment text-primary me-1"></i> Comment
         </button>
         
-        <button class="btn btn-link text-decoration-none p-0 reply-to-post-btn" data-post-id="{{ post.id }}">
+        <button class="btn btn-link text-decoration-none p-0 reply-to-post-btn" data-post-id="{{ post.id }}" style="color: #4a5568;">
             <i class="fas fa-reply text-success me-1"></i> Reply
         </button>
         
-        <button class="btn btn-link text-decoration-none p-0 save-btn" data-post-id="{{ post.id }}">
-            <i class="fas fa-bookmark me-1"></i> Save
+        <button class="btn btn-link text-decoration-none p-0 save-btn {% if user_saved %}active{% endif %}" 
+                data-post-id="{{ post.id }}" 
+                style="color: {% if user_saved %}#ecc94b{% else %}#4a5568{% endif %};">
+            <i class="fas fa-bookmark me-1" style="color: {% if user_saved %}#ecc94b{% else %}#718096{% endif %};"></i> Save
         </button>
     </div>
 
     <!-- Reply Form -->
     <div class="reply-to-post-form-{{ post.id }} mb-3" style="display: none;">
         <div class="d-flex gap-2">
-            <input type="text" class="form-control form-control-sm reply-to-post-input" placeholder="Write a reply..." data-post-id="{{ post.id }}">
-            <button class="btn btn-primary btn-sm submit-reply-to-post-btn" data-post-id="{{ post.id }}">Reply</button>
+            <input type="text" class="form-control form-control-sm reply-to-post-input" placeholder="Write a reply..." data-post-id="{{ post.id }}" style="border-radius: 20px; padding: 8px 15px; border: 1px solid #e2e8f0;">
+            <button class="btn btn-primary btn-sm submit-reply-to-post-btn" data-post-id="{{ post.id }}" style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 20px;">Reply</button>
         </div>
     </div>
 
@@ -157,7 +175,7 @@
     {% if post.reply_count > 0 and not post.parent %}
         <div class="replies-section mb-3">
             <div class="d-flex align-items-center mb-2">
-                <button class="btn btn-link p-0 toggle-replies-btn" data-post-id="{{ post.id }}" style="color: #667eea;">
+                <button class="btn btn-link p-0 toggle-replies-btn" data-post-id="{{ post.id }}" style="color: #667eea; text-decoration: none;">
                     <i class="fas fa-chevron-right me-1 small"></i>
                     View {{ post.reply_count }} repl{{ post.reply_count|pluralize:"y,ies" }}
                 </button>
@@ -170,18 +188,20 @@
         </div>
     {% endif %}
 
-    <!-- Comments Section - SIMPLIFIED (no nested replies) -->
+    <!-- Comments Section -->
     <div class="comments-section comments-section-{{ post.id }}" style="display: none;">
         <div class="comments-container-{{ post.id }} mb-3">
             {% for comment in post.comments.all %}
-                {% include 'posts/_comment.html' with comment=comment %}
+                {% if not comment.parent %}
+                    {% include 'posts/_comment.html' with comment=comment %}
+                {% endif %}
             {% endfor %}
         </div>
         {% if user.is_authenticated %}
             <div class="add-comment-form">
                 <div class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-sm comment-input" placeholder="Add a comment..." data-post-id="{{ post.id }}">
-                    <button class="btn btn-primary btn-sm submit-comment-btn" data-post-id="{{ post.id }}">Post</button>
+                    <input type="text" class="form-control form-control-sm comment-input" placeholder="Add a comment..." data-post-id="{{ post.id }}" style="border-radius: 20px; padding: 8px 15px; border: 1px solid #e2e8f0;">
+                    <button class="btn btn-primary btn-sm submit-comment-btn" data-post-id="{{ post.id }}" style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 20px;">Post</button>
                 </div>
             </div>
         {% endif %}
@@ -191,13 +211,13 @@
 <!-- Report Modal -->
 <div class="modal fade" id="reportModal-{{ post.id }}" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content" style="border-radius: 20px;">
+            <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
                 <h5 class="modal-title">Report Post</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <select class="form-select mb-3 report-reason" data-post-id="{{ post.id }}">
+                <select class="form-select mb-3 report-reason" data-post-id="{{ post.id }}" style="border-radius: 10px; padding: 10px;">
                     <option value="spam">Spam</option>
                     <option value="harassment">Harassment</option>
                     <option value="hate_speech">Hate Speech</option>
@@ -206,11 +226,30 @@
                     <option value="copyright">Copyright</option>
                     <option value="other">Other</option>
                 </select>
-                <textarea class="form-control report-description" rows="3" placeholder="Additional details..." data-post-id="{{ post.id }}"></textarea>
+                <textarea class="form-control report-description" rows="3" placeholder="Additional details..." data-post-id="{{ post.id }}" style="border-radius: 10px; padding: 10px;"></textarea>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger submit-report-btn" data-post-id="{{ post.id }}">Submit Report</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 20px;">Cancel</button>
+                <button type="button" class="btn btn-danger submit-report-btn" data-post-id="{{ post.id }}" style="border-radius: 20px; background: linear-gradient(135deg, #ff416c, #ff4b2b); border: none;">Submit Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reactions Modal -->
+<div class="modal fade" id="reactionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius: 20px;">
+            <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="modal-title">Reactions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reactionsList" style="max-height: 400px; overflow-y: auto; padding: 0;">
+                <div class="text-center py-4" id="reactionsLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -218,89 +257,135 @@
 
 <script>
 // ==================== REACTION HANDLER ====================
-document.querySelectorAll('.reaction-container').forEach(container => {
-    const btn = container.querySelector('.main-like-btn');
-    const menu = container.querySelector('.reaction-hover-menu');
-    let timer;
+document.addEventListener('DOMContentLoaded', function() {
+    // Reaction data mapping
+    const reactionData = {
+        'love': { icon: 'fa-heart', text: 'Love', color: '#f56565' },
+        'haha': { icon: 'fa-laugh', text: 'Haha', color: '#ecc94b' },
+        'wow': { icon: 'fa-surprise', text: 'Wow', color: '#9f7aea' },
+        'sad': { icon: 'fa-sad-tear', text: 'Sad', color: '#4299e1' },
+        'angry': { icon: 'fa-angry', text: 'Angry', color: '#e53e3e' },
+        'like': { icon: 'fa-thumbs-up', text: 'Like', color: '#3182ce' }
+    };
     
-    btn.addEventListener('mouseenter', () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => menu.style.display = 'block', 400);
-    });
-    btn.addEventListener('mouseleave', () => {
-        clearTimeout(timer);
-        setTimeout(() => {
-            if (!menu.matches(':hover')) menu.style.display = 'none';
-        }, 200);
-    });
-    menu.addEventListener('mouseleave', () => menu.style.display = 'none');
-    
-    menu.querySelectorAll('.reaction-option').forEach(opt => {
-        opt.addEventListener('click', function() {
-            const postId = this.dataset.postId;
-            const reaction = this.dataset.reaction;
-            const btn = document.querySelector(`.main-like-btn[data-post-id="${postId}"]`);
-            
-            fetch(`/ajax/react/${postId}/`, {
-                method: 'POST',
-                headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json'},
-                body: JSON.stringify({reaction_type: reaction})
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    btn.innerHTML = `<i class="fas fa-thumbs-up me-1"></i> Like <span class="like-count">${data.counts.like}</span>`;
-                    document.querySelector(`.reactions-count`).textContent = Object.values(data.counts).reduce((a,b)=>a+b,0);
+    // Hover menu functionality
+    document.querySelectorAll('.reaction-container').forEach(container => {
+        const likeBtn = container.querySelector('.main-like-btn');
+        const hoverMenu = container.querySelector('.reaction-hover-menu');
+        let hoverTimer;
+        let hideTimer;
+        
+        if (!likeBtn || !hoverMenu) return;
+        
+        likeBtn.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimer);
+            clearTimeout(hoverTimer);
+            hoverTimer = setTimeout(() => {
+                hoverMenu.style.display = 'block';
+            }, 400);
+        });
+        
+        likeBtn.addEventListener('mouseleave', () => {
+            clearTimeout(hoverTimer);
+            hideTimer = setTimeout(() => {
+                if (!hoverMenu.matches(':hover')) {
+                    hoverMenu.style.display = 'none';
                 }
+            }, 200);
+        });
+        
+        hoverMenu.addEventListener('mouseenter', () => {
+            clearTimeout(hideTimer);
+        });
+        
+        hoverMenu.addEventListener('mouseleave', () => {
+            hideTimer = setTimeout(() => {
+                hoverMenu.style.display = 'none';
+            }, 200);
+        });
+        
+        hoverMenu.querySelectorAll('.reaction-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                const postId = this.dataset.postId;
+                const reaction = this.dataset.reaction;
+                const button = document.querySelector(`.main-like-btn[data-post-id="${postId}"]`);
+                const originalContent = button.innerHTML;
+                
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 1rem; height: 1rem;"></span>';
+                
+                fetch(`/ajax/react/${postId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                    },
+                    body: JSON.stringify({ reaction_type: reaction })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.user_reaction) {
+                            const r = reactionData[data.user_reaction];
+                            button.innerHTML = `<i class="fas ${r.icon} me-1" style="color: ${r.color};"></i> ${r.text} <span class="like-count" style="color: #718096;">${data.counts[data.user_reaction]}</span>`;
+                            button.style.color = r.color;
+                        } else {
+                            button.innerHTML = `<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> Like <span class="like-count" style="color: #718096;">${data.counts.like}</span>`;
+                            button.style.color = '#718096';
+                        }
+                        updateReactionCounter(postId, data.counts);
+                    } else {
+                        button.innerHTML = originalContent;
+                        showNotification('Failed to add reaction', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    button.innerHTML = originalContent;
+                    showNotification('Network error', 'error');
+                })
+                .finally(() => {
+                    button.disabled = false;
+                    hoverMenu.style.display = 'none';
+                });
             });
-            menu.style.display = 'none';
         });
     });
 });
 
-// ==================== DELETE POST ====================
-function confirmDelete(postId) {
-    if (confirm('Delete this post?')) {
-        const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
-        const isReply = postCard.hasAttribute('data-reply');
-        
-        fetch(`/post/${postId}/delete/`, {
-            method: 'POST',
-            headers: {'X-CSRFToken': '{{ csrf_token }}'}
-        })
-        .then(response => {
-            if (response.ok) {
-                // If this was a reply, update the parent's reply count in UI
-                if (isReply) {
-                    // Find the parent post (the one with replies section)
-                    const parentPost = Array.from(document.querySelectorAll('.post-card')).find(card => 
-                        card.querySelector(`.replies-container-${postId}`)
-                    );
-                    
-                    if (parentPost) {
-                        const replyCountSpan = parentPost.querySelector('.toggle-replies-btn');
-                        if (replyCountSpan) {
-                            const currentText = replyCountSpan.textContent;
-                            const match = currentText.match(/\d+/);
-                            if (match) {
-                                const currentCount = parseInt(match[0]);
-                                const newCount = currentCount - 1;
-                                if (newCount > 0) {
-                                    replyCountSpan.innerHTML = `<i class="fas fa-chevron-right me-1 small"></i> View ${newCount} repl${newCount === 1 ? 'y' : 'ies'}`;
-                                } else {
-                                    // Remove the entire replies section if no replies left
-                                    const repliesSection = parentPost.querySelector('.replies-section');
-                                    if (repliesSection) repliesSection.remove();
-                                }
-                            }
-                        }
-                    }
-                }
-                postCard.remove();
-                showNotification('Post deleted successfully!');
-            }
-        });
+// ==================== UPDATE REACTION COUNTER ====================
+function updateReactionCounter(postId, counts) {
+    const counterSpan = document.querySelector(`.reaction-counter[data-post-id="${postId}"]`);
+    if (!counterSpan) return;
+    
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    
+    if (total === 0) {
+        counterSpan.innerHTML = '<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> <span>0</span>';
+        return;
     }
+    
+    let mostPopular = 'like';
+    let highestCount = 0;
+    for (const [type, count] of Object.entries(counts)) {
+        if (count > highestCount) {
+            highestCount = count;
+            mostPopular = type;
+        }
+    }
+    
+    const icons = {
+        'like': '<i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>',
+        'love': '<i class="fas fa-heart me-1" style="color: #f56565;"></i>',
+        'haha': '<i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>',
+        'wow': '<i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>',
+        'sad': '<i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>',
+        'angry': '<i class="fas fa-angry me-1" style="color: #e53e3e;"></i>'
+    };
+    
+    counterSpan.innerHTML = icons[mostPopular] + ' <span>' + total + '</span>';
 }
 
 // ==================== SHOW NOTIFICATION ====================
@@ -322,6 +407,48 @@ function showNotification(message, type = 'success') {
         toast.style.animation = 'slideDown 0.3s ease';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// ==================== DELETE POST ====================
+function confirmDelete(postId) {
+    if (confirm('Delete this post?')) {
+        const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);
+        const isReply = postCard.hasAttribute('data-reply');
+        
+        fetch(`/post/${postId}/delete/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value}
+        })
+        .then(response => {
+            if (response.ok) {
+                if (isReply) {
+                    const parentPost = Array.from(document.querySelectorAll('.post-card')).find(card => 
+                        card.querySelector(`.replies-container-${postId}`)
+                    );
+                    
+                    if (parentPost) {
+                        const replyCountSpan = parentPost.querySelector('.toggle-replies-btn');
+                        if (replyCountSpan) {
+                            const currentText = replyCountSpan.textContent;
+                            const match = currentText.match(/\d+/);
+                            if (match) {
+                                const currentCount = parseInt(match[0]);
+                                const newCount = currentCount - 1;
+                                if (newCount > 0) {
+                                    replyCountSpan.innerHTML = `<i class="fas fa-chevron-right me-1 small"></i> View ${newCount} repl${newCount === 1 ? 'y' : 'ies'}`;
+                                } else {
+                                    const repliesSection = parentPost.querySelector('.replies-section');
+                                    if (repliesSection) repliesSection.remove();
+                                }
+                            }
+                        }
+                    }
+                }
+                postCard.remove();
+                showNotification('Post deleted successfully!');
+            }
+        });
+    }
 }
 
 // ==================== SHOW REACTIONS MODAL ====================
@@ -346,4 +473,130 @@ function showReactions(postId) {
             }
         });
 }
+
+// ==================== IMAGE MODAL ====================
+function openImageModal(imageUrl) {
+    const modalHtml = `
+        <div class="modal fade" id="imageModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content bg-transparent border-0">
+                    <div class="modal-body text-center">
+                        <img src="${imageUrl}" class="img-fluid" style="max-height: 90vh;">
+                    </div>
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    let modalElement = document.getElementById('imageModal');
+    if (!modalElement) {
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modalElement = document.getElementById('imageModal');
+    } else {
+        modalElement.querySelector('img').src = imageUrl;
+    }
+    
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+// Add slideDown animation
+if (!document.getElementById('slideDownStyle')) {
+    const style = document.createElement('style');
+    style.id = 'slideDownStyle';
+    style.textContent = `
+        @keyframes slideDown {
+            from {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+            to {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
 </script>
+
+<style>
+.reaction-hover-menu {
+    animation: slideUp 0.2s ease;
+}
+
+.reaction-hover-menu button {
+    transition: transform 0.2s;
+}
+
+.reaction-hover-menu button:hover {
+    transform: scale(1.3);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.save-btn.active {
+    color: #ecc94b !important;
+}
+
+.save-btn.active i {
+    color: #ecc94b !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: #fee2e2;
+}
+
+.reaction-container .main-like-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.replied-to-box {
+    background: rgba(102, 126, 234, 0.08);
+    border-left: 4px solid #667eea;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.replied-to-box:hover {
+    background: rgba(102, 126, 234, 0.12);
+}
+
+.replied-to-box .profile-avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 0.6rem;
+}
+
+.replied-to-box p {
+    margin-left: 28px;
+    color: #4a5568;
+}
+
+.replied-to-box small i {
+    opacity: 0.7;
+}
+
+.post-card[data-reply="true"] {
+    border-left: 3px solid #667eea;
+}
+</style>

@@ -4,7 +4,7 @@ from .models import Post, Comment
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['post_type', 'title', 'content', 'image', 'video_url']
+        fields = ['post_type', 'title', 'content', 'image', 'video']  # Changed from video_url to video
         widgets = {
             'content': forms.Textarea(attrs={
                 'rows': 5,
@@ -17,29 +17,21 @@ class PostForm(forms.ModelForm):
                 'placeholder': 'Title (optional)',
                 'maxlength': 200
             }),
-            'video_url': forms.URLInput(attrs={
+            'video': forms.FileInput(attrs={  # Changed from URLInput to FileInput
                 'class': 'form-control',
-                'placeholder': 'YouTube or video URL'
+                'accept': 'video/*'
             }),
             'post_type': forms.Select(attrs={
                 'class': 'form-control'
+            }),
+            'image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
             }),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['title'].required = False  # Make title optional
-        self.fields['content'].required = True  # Content still required
-
-class CommentForm(forms.ModelForm):
-    class Meta:
-        model = Comment
-        fields = ['content']
-        widgets = {
-            'content': forms.Textarea(attrs={
-                'rows': 3,
-                'class': 'form-control',
-                'placeholder': 'Write a comment...',
-                'maxlength': 1000
-            }),
-        }
+        self.fields['title'].required = False
+        self.fields['video'].required = False
+        self.fields['image'].required = False

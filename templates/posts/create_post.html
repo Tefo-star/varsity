@@ -47,7 +47,7 @@
                         {% elif field.name == 'image' %}
                             <div class="image-upload-area" id="imageUploadArea">
                                 {{ field }}
-                                <div class="upload-placeholder text-center">
+                                <div class="upload-placeholder text-center" id="imagePlaceholder">
                                     <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color: var(--neon-purple);"></i>
                                     <p class="mb-2">Drag & drop an image here or click to browse</p>
                                     <small class="text-muted">Supports: JPG, PNG, GIF (Max 5MB)</small>
@@ -59,12 +59,23 @@
                                     </button>
                                 </div>
                             </div>
-                        {% elif field.name == 'video_url' %}
-                            <div class="input-group">
-                                <span class="input-group-text" style="background: linear-gradient(135deg, #ff0080, #ff8c00); color: white; border: none;">
-                                    <i class="fab fa-youtube"></i>
-                                </span>
+                        {% elif field.name == 'video' %}
+                            <div class="video-upload-area" id="videoUploadArea" style="border: 3px dashed #e0e0e0; border-radius: 20px; padding: 30px; text-align: center; transition: all 0.3s; cursor: pointer; position: relative;">
                                 {{ field }}
+                                <div class="upload-placeholder" id="videoPlaceholder">
+                                    <i class="fas fa-video fa-3x mb-3" style="color: var(--neon-purple);"></i>
+                                    <p class="mb-2">Drag & drop a video here or click to browse</p>
+                                    <small class="text-muted">Supports: MP4, MOV, AVI, WebM (Max 100MB, 5 minutes)</small>
+                                </div>
+                                <div class="video-preview" id="videoPreview" style="display: none;">
+                                    <video controls style="max-width: 100%; max-height: 300px; border-radius: 10px;">
+                                        <source src="" id="videoSource">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                    <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeVideo()">
+                                        <i class="fas fa-times me-1"></i>Remove
+                                    </button>
+                                </div>
                             </div>
                         {% else %}
                             {{ field }}
@@ -159,12 +170,6 @@
         100% { background-position: 0% 50%; }
     }
 
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
-    }
-
     /* Form field styling */
     .form-field {
         transition: all 0.3s;
@@ -246,7 +251,7 @@
     }
 
     /* Image upload area */
-    .image-upload-area {
+    .image-upload-area, .video-upload-area {
         position: relative;
         border: 3px dashed #e0e0e0;
         border-radius: 20px;
@@ -256,13 +261,13 @@
         cursor: pointer;
     }
 
-    .image-upload-area:hover {
+    .image-upload-area:hover, .video-upload-area:hover {
         border-color: var(--neon-purple);
         background: rgba(183, 33, 255, 0.05);
         transform: scale(1.02);
     }
 
-    .image-upload-area input[type="file"] {
+    .image-upload-area input[type="file"], .video-upload-area input[type="file"] {
         position: absolute;
         top: 0;
         left: 0;
@@ -272,33 +277,14 @@
         cursor: pointer;
     }
 
-    .image-preview {
+    .image-preview, .video-preview {
         text-align: center;
         animation: fadeInUp 0.3s;
     }
 
-    .image-preview img {
+    .image-preview img, .video-preview video {
         border: 3px solid white;
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-
-    /* Input group */
-    .input-group {
-        display: flex;
-        align-items: stretch;
-    }
-
-    .input-group-text {
-        display: flex;
-        align-items: center;
-        padding: 0 15px;
-        border-radius: 15px 0 0 15px;
-        font-size: 1.2rem;
-    }
-
-    .input-group input {
-        border-radius: 0 15px 15px 0;
-        border-left: none;
     }
 
     /* Submit button */
@@ -311,51 +297,15 @@
         border: none;
     }
 
-    #submitBtn::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.5);
-        transform: translate(-50%, -50%);
-        transition: width 0.6s, height 0.6s;
-    }
-
-    #submitBtn:hover::before {
-        width: 300px;
-        height: 300px;
-    }
-
     #submitBtn:hover {
         transform: translateY(-3px);
         box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
     }
 
-    /* Loading state */
     .btn-loading {
         color: white;
     }
 
-    /* Character counter */
-    .char-counter {
-        text-align: right;
-        font-size: 0.9rem;
-        color: #6c757d;
-        margin-top: 5px;
-    }
-
-    .char-counter.warning {
-        color: #ff8c00;
-    }
-
-    .char-counter.danger {
-        color: #ff416c;
-    }
-
-    /* Form validation */
     .is-valid {
         border-color: #00b09b !important;
     }
@@ -380,42 +330,98 @@
 
 <script>
     // Image upload preview
-    document.addEventListener('DOMContentLoaded', function() {
-        const imageInput = document.querySelector('input[type="file"]');
-        const uploadArea = document.getElementById('imageUploadArea');
-        const preview = document.getElementById('imagePreview');
-        const placeholder = document.querySelector('.upload-placeholder');
-        
-        if (imageInput) {
-            imageInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        preview.querySelector('img').src = e.target.result;
-                        preview.style.display = 'block';
-                        placeholder.style.display = 'none';
-                        uploadArea.style.borderColor = '#00b09b';
-                        
-                        // Animation
-                        preview.style.animation = 'fadeInUp 0.3s';
-                    }
-                    reader.readAsDataURL(file);
+    const imageInput = document.querySelector('input[name="image"]');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    const imagePreview = document.getElementById('imagePreview');
+    const imagePlaceholder = document.getElementById('imagePlaceholder');
+    
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File too large! Maximum size is 5MB');
+                    this.value = '';
+                    return;
                 }
-            });
-        }
-    });
+                
+                // Check file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select a valid image file');
+                    this.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.querySelector('img').src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    imagePlaceholder.style.display = 'none';
+                    imageUploadArea.style.borderColor = '#00b09b';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
 
     function removeImage() {
-        const imageInput = document.querySelector('input[type="file"]');
-        const preview = document.getElementById('imagePreview');
-        const placeholder = document.querySelector('.upload-placeholder');
-        const uploadArea = document.getElementById('imageUploadArea');
-        
         imageInput.value = '';
-        preview.style.display = 'none';
-        placeholder.style.display = 'block';
-        uploadArea.style.borderColor = '#e0e0e0';
+        imagePreview.style.display = 'none';
+        imagePlaceholder.style.display = 'block';
+        imageUploadArea.style.borderColor = '#e0e0e0';
+    }
+
+    // Video upload preview
+    const videoInput = document.querySelector('input[name="video"]');
+    const videoUploadArea = document.getElementById('videoUploadArea');
+    const videoPreview = document.getElementById('videoPreview');
+    const videoPlaceholder = document.getElementById('videoPlaceholder');
+    const videoSource = document.getElementById('videoSource');
+
+    if (videoInput) {
+        videoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Check file size (max 100MB)
+                if (file.size > 100 * 1024 * 1024) {
+                    alert('File too large! Maximum size is 100MB');
+                    this.value = '';
+                    return;
+                }
+                
+                // Check file type
+                if (!file.type.startsWith('video/')) {
+                    alert('Please select a valid video file');
+                    this.value = '';
+                    return;
+                }
+                
+                const url = URL.createObjectURL(file);
+                videoSource.src = url;
+                videoPreview.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+                videoUploadArea.style.borderColor = '#00b09b';
+                
+                // Load video to check duration
+                const video = videoPreview.querySelector('video');
+                video.load();
+                video.onloadedmetadata = function() {
+                    if (video.duration > 300) { // 5 minutes max
+                        alert('Video too long! Maximum duration is 5 minutes');
+                        removeVideo();
+                    }
+                };
+            }
+        });
+    }
+
+    function removeVideo() {
+        videoInput.value = '';
+        videoPreview.style.display = 'none';
+        videoPlaceholder.style.display = 'block';
+        videoUploadArea.style.borderColor = '#e0e0e0';
+        videoSource.src = '';
     }
 
     // Text editor functions
@@ -439,22 +445,12 @@
         }
         
         textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
-        
-        // Animation
-        const btn = event.target.closest('.toolbar-btn');
-        btn.style.animation = 'pulse 0.3s';
-        setTimeout(() => btn.style.animation = '', 300);
     }
 
     function insertEmoji(emoji) {
         const textarea = document.querySelector('textarea[name="content"]');
         const start = textarea.selectionStart;
         textarea.value = textarea.value.substring(0, start) + emoji + textarea.value.substring(textarea.selectionEnd);
-        
-        // Animation
-        const btn = event.target.closest('.toolbar-btn');
-        btn.style.animation = 'pulse 0.3s';
-        setTimeout(() => btn.style.animation = '', 300);
     }
 
     // Character counter
@@ -462,22 +458,12 @@
         const textarea = document.querySelector('textarea[name="content"]');
         if (textarea) {
             const counter = document.createElement('div');
-            counter.className = 'char-counter';
+            counter.className = 'char-counter text-muted mt-1';
             textarea.parentNode.appendChild(counter);
             
             function updateCounter() {
                 const length = textarea.value.length;
                 counter.textContent = `${length} characters`;
-                
-                if (length > 500) {
-                    counter.classList.add('danger');
-                    counter.classList.remove('warning');
-                } else if (length > 300) {
-                    counter.classList.add('warning');
-                    counter.classList.remove('danger');
-                } else {
-                    counter.classList.remove('warning', 'danger');
-                }
             }
             
             textarea.addEventListener('input', updateCounter);
@@ -494,16 +480,9 @@
         btnText.style.display = 'none';
         btnLoading.style.display = 'inline-block';
         submitBtn.disabled = true;
-        
-        // Optional: prevent double submission
-        setTimeout(() => {
-            submitBtn.disabled = false;
-            btnText.style.display = 'inline-block';
-            btnLoading.style.display = 'none';
-        }, 5000); // Reset after 5 seconds if something goes wrong
     });
 
-    // Field validation animations
+    // Field validation
     document.querySelectorAll('input, textarea, select').forEach(field => {
         field.addEventListener('invalid', function(e) {
             e.preventDefault();
@@ -522,11 +501,9 @@
         });
     });
 
-    // Drag and drop for image upload
-    const uploadArea = document.getElementById('imageUploadArea');
-    
+    // Drag and drop for video
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, preventDefaults, false);
+        videoUploadArea.addEventListener(eventName, preventDefaults, false);
     });
 
     function preventDefaults(e) {
@@ -535,37 +512,35 @@
     }
 
     ['dragenter', 'dragover'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, highlight, false);
+        videoUploadArea.addEventListener(eventName, highlight, false);
     });
 
     ['dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, unhighlight, false);
+        videoUploadArea.addEventListener(eventName, unhighlight, false);
     });
 
     function highlight() {
-        uploadArea.style.borderColor = 'var(--neon-purple)';
-        uploadArea.style.background = 'rgba(183, 33, 255, 0.1)';
-        uploadArea.style.transform = 'scale(1.02)';
+        videoUploadArea.style.borderColor = 'var(--neon-purple)';
+        videoUploadArea.style.background = 'rgba(183, 33, 255, 0.1)';
+        videoUploadArea.style.transform = 'scale(1.02)';
     }
 
     function unhighlight() {
-        uploadArea.style.borderColor = '#e0e0e0';
-        uploadArea.style.background = '';
-        uploadArea.style.transform = 'scale(1)';
+        videoUploadArea.style.borderColor = '#e0e0e0';
+        videoUploadArea.style.background = '';
+        videoUploadArea.style.transform = 'scale(1)';
     }
 
-    uploadArea.addEventListener('drop', handleDrop, false);
+    videoUploadArea.addEventListener('drop', handleDrop, false);
 
     function handleDrop(e) {
         const dt = e.dataTransfer;
         const files = dt.files;
-        const imageInput = document.querySelector('input[type="file"]');
         
         if (files.length > 0) {
-            imageInput.files = files;
-            // Trigger change event
+            videoInput.files = files;
             const event = new Event('change', { bubbles: true });
-            imageInput.dispatchEvent(event);
+            videoInput.dispatchEvent(event);
         }
     }
 </script>

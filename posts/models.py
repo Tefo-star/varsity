@@ -19,7 +19,7 @@ class Post(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField(blank=True)
     image = CloudinaryField('image', blank=True, null=True)
-    video_url = models.URLField(blank=True, null=True)
+    video = CloudinaryField('video', blank=True, null=True, resource_type='video')  # Changed from video_url
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     last_activity = models.DateTimeField(auto_now=True)
