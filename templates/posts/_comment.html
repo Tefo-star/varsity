@@ -14,7 +14,12 @@
                 <strong class="small">{{ comment.author.username }}</strong>
                 {% if comment.author.activity.university %}
                     <span class="uni-badge uni-{{ comment.author.activity.university }}" style="font-size: 0.6rem; padding: 2px 6px;">
-                        {{ comment.author.activity.university|upper }}
+                        {% if comment.author.activity.university == 'ub' %}UB{% endif %}
+                        {% if comment.author.activity.university == 'buan' %}BUAN{% endif %}
+                        {% if comment.author.activity.university == 'botho' %}BOTHO{% endif %}
+                        {% if comment.author.activity.university == 'limkokwing' %}LIMKO{% endif %}
+                        {% if comment.author.activity.university == 'baisago' %}ISAGO{% endif %}
+                        {% if comment.author.activity.university == 'biust' %}BIUST{% endif %}
                     </span>
                 {% endif %}
                 <span class="text-muted small">{{ comment.created_at|timesince }} ago</span>
@@ -34,12 +39,14 @@
                     <i class="fas fa-heart me-1" style="font-size: 0.7rem;"></i> Like <span class="comment-like-count">{{ comment.get_reaction_counts.like }}</span>
                 </button>
                 
-                <!-- ONLY SHOW REPLY BUTTON FOR TOP-LEVEL COMMENTS (Level 1) -->
-                {% if not comment.parent %}
-                    <button class="btn btn-link p-0 reply-to-comment-btn" data-comment-id="{{ comment.id }}" data-post-id="{{ comment.post.id }}" style="font-size: 0.8rem; color: #718096;">
-                        <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i> Reply
-                    </button>
-                {% endif %}
+                <!-- REPLY BUTTON - FIXED with proper onclick for testing -->
+                <button class="btn btn-link p-0 reply-to-comment-btn" 
+                        data-comment-id="{{ comment.id }}" 
+                        data-post-id="{{ comment.post.id }}"
+                        onclick="showReplyForm('{{ comment.id }}')"
+                        style="font-size: 0.8rem; color: #718096;">
+                    <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i> Reply
+                </button>
                 
                 {% if comment.reply_count > 0 %}
                     <button class="btn btn-link p-0 view-replies-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; color: #667eea;">
@@ -48,49 +55,81 @@
                 {% endif %}
             </div>
             
-            <!-- Reply form - ONLY FOR TOP-LEVEL COMMENTS -->
-            {% if not comment.parent %}
-                <div class="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
-                    <div class="d-flex gap-2">
-                        <input type="text" class="form-control form-control-sm reply-input" placeholder="Write a reply..." data-parent-id="{{ comment.id }}" data-post-id="{{ comment.post.id }}">
-                        <button class="btn btn-primary btn-sm submit-reply-btn" data-parent-id="{{ comment.id }}">Reply</button>
-                    </div>
+            <!-- Reply form - FIXED with proper ID and styling -->
+            <div id="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
+                <div class="d-flex gap-2">
+                    <input type="text" class="form-control form-control-sm reply-input" 
+                           id="reply-input-{{ comment.id }}"
+                           placeholder="Write a reply..." 
+                           data-parent-id="{{ comment.id }}" 
+                           data-post-id="{{ comment.post.id }}">
+                    <button class="btn btn-primary btn-sm submit-reply-btn" 
+                            data-parent-id="{{ comment.id }}"
+                            onclick="submitReply('{{ comment.id }}', '{{ comment.post.id }}')">
+                        Reply
+                    </button>
                 </div>
-            {% endif %}
+            </div>
             
-            <!-- Container for replies (Level 2 only) -->
-            <div class="replies-{{ comment.id }}" style="display: {% if comment.reply_count > 0 %}block{% else %}none{% endif %}; margin-top: 10px;">
+            <!-- Container for replies -->
+            <div class="replies-{{ comment.id }}" style="margin-top: 10px;">
                 {% for reply in comment.replies.all %}
-                    <div class="comment mb-2" id="comment-{{ reply.id }}" style="margin-left: 30px;">
-                        <div class="d-flex">
-                            <div class="profile-avatar me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
-                                {% if reply.author.activity.profile_picture %}
-                                    <img src="{{ reply.author.activity.profile_picture.url }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                {% else %}
-                                    {{ reply.author.username|first|upper }}
-                                {% endif %}
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <strong class="small">{{ reply.author.username }}</strong>
-                                    <span class="text-muted small">{{ reply.created_at|timesince }} ago</span>
-                                    {% if user == reply.author %}
-                                        <button class="btn btn-link p-0 ms-auto text-danger delete-comment-btn" data-comment-id="{{ reply.id }}" style="font-size: 0.7rem;">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    {% endif %}
-                                </div>
-                                <p class="mb-1 small">{{ reply.content }}</p>
-                                <div class="d-flex align-items-center">
-                                    <button class="btn btn-link p-0 comment-like-btn" data-comment-id="{{ reply.id }}" style="font-size: 0.7rem; color: #718096;">
-                                        <i class="fas fa-heart me-1" style="font-size: 0.6rem;"></i> Like <span class="comment-like-count">{{ reply.get_reaction_counts.like }}</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {% include 'posts/_comment.html' with comment=reply %}
                 {% endfor %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// DIRECT FUNCTIONS - NO EVENT LISTENER ISSUES
+function showReplyForm(commentId) {
+    document.getElementById(`reply-form-${commentId}`).style.display = 'block';
+}
+
+function submitReply(commentId, postId) {
+    const input = document.getElementById(`reply-input-${commentId}`);
+    const content = input.value.trim();
+    const btn = event.target;
+    
+    if (!content) {
+        alert('Please enter a reply');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+    fetch(`/ajax/comment/${postId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ 
+            content: content, 
+            parent_id: commentId 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload to show the new reply
+            location.reload();
+        } else {
+            alert(data.error || 'Error posting reply');
+            btn.disabled = false;
+            btn.innerHTML = 'Reply';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Network error');
+        btn.disabled = false;
+        btn.innerHTML = 'Reply';
+    });
+}
+</script>
