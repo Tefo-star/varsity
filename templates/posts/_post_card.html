@@ -70,10 +70,47 @@
         </div>
     {% endif %}
 
-    <!-- Post Stats -->
+    <!-- Post Stats - Facebook Style with Dynamic Icon -->
     <div class="d-flex justify-content-between mb-2" style="color: #718096; font-size: 0.9rem;">
-        <div>
-            <span class="me-3"><i class="fas fa-heart me-1" style="color: #f56565;"></i> <span class="reactions-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span></span>
+        <div class="d-flex align-items-center">
+            <!-- Reaction Stats with Icon (Facebook Style) -->
+            <span class="me-3 reaction-stats" data-post-id="{{ post.id }}">
+                {% with counts=post.get_reaction_counts %}
+                    {% with total=counts.like|add:counts.love|add:counts.haha|add:counts.wow|add:counts.sad|add:counts.angry %}
+                        {% if total > 0 %}
+                            {% with most_popular=counts.like %}
+                                {% if counts.love > most_popular %}
+                                    {% with most_popular=counts.love %}
+                                        <i class="fas fa-heart me-1" style="color: #f56565;"></i>
+                                    {% endwith %}
+                                {% elif counts.haha > most_popular %}
+                                    {% with most_popular=counts.haha %}
+                                        <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>
+                                    {% endwith %}
+                                {% elif counts.wow > most_popular %}
+                                    {% with most_popular=counts.wow %}
+                                        <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>
+                                    {% endwith %}
+                                {% elif counts.sad > most_popular %}
+                                    {% with most_popular=counts.sad %}
+                                        <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>
+                                    {% endwith %}
+                                {% elif counts.angry > most_popular %}
+                                    {% with most_popular=counts.angry %}
+                                        <i class="fas fa-angry me-1" style="color: #e53e3e;"></i>
+                                    {% endwith %}
+                                {% else %}
+                                    <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>
+                                {% endif %}
+                            {% endwith %}
+                            <span class="reactions-count">{{ total }}</span>
+                        {% else %}
+                            <i class="fas fa-thumbs-up me-1" style="color: #718096;"></i>
+                            <span class="reactions-count">0</span>
+                        {% endif %}
+                    {% endwith %}
+                {% endwith %}
+            </span>
             <span class="me-3"><i class="fas fa-comment me-1" style="color: #4299e1;"></i> <span class="comments-count">{{ post.comment_count }}</span></span>
             <span><i class="fas fa-share me-1" style="color: #48bb78;"></i> <span class="shares-count">{{ post.share_count }}</span></span>
         </div>
@@ -88,12 +125,28 @@
         <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3" style="border-color: #e2e8f0 !important;">
             <!-- Reaction Container with Hover Menu -->
             <div class="reaction-container" style="position: relative;">
-                <!-- Main Like Button (trigger) -->
+                <!-- Main Like Button (trigger) - Updates based on user's reaction -->
                 <button class="btn btn-link text-decoration-none main-like-btn" 
                         data-post-id="{{ post.id }}"
-                        style="color: {% if user_reaction %}#3182ce{% else %}#718096{% endif %}; font-weight: {% if user_reaction %}600{% else %}500{% endif %}; position: relative; padding: 0; border: none; background: none;">
-                    <i class="fas fa-thumbs-up me-1" style="color: {% if user_reaction %}#3182ce{% else %}#718096{% endif %};"></i> 
-                    Like <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
+                        style="color: {% if user_reaction %}{% if user_reaction == 'love' %}#f56565{% elif user_reaction == 'haha' %}#ecc94b{% elif user_reaction == 'wow' %}#9f7aea{% elif user_reaction == 'sad' %}#4299e1{% elif user_reaction == 'angry' %}#e53e3e{% else %}#3182ce{% endif %}{% else %}#718096{% endif %}; font-weight: {% if user_reaction %}600{% else %}500{% endif %}; position: relative; padding: 0; border: none; background: none;">
+                    {% if user_reaction %}
+                        {% if user_reaction == 'love' %}
+                            <i class="fas fa-heart me-1" style="color: #f56565;"></i> Love
+                        {% elif user_reaction == 'haha' %}
+                            <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i> Haha
+                        {% elif user_reaction == 'wow' %}
+                            <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i> Wow
+                        {% elif user_reaction == 'sad' %}
+                            <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i> Sad
+                        {% elif user_reaction == 'angry' %}
+                            <i class="fas fa-angry me-1" style="color: #e53e3e;"></i> Angry
+                        {% else %}
+                            <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i> Like
+                        {% endif %}
+                    {% else %}
+                        <i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> Like
+                    {% endif %}
+                    <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
                 </button>
                 
                 <!-- Reaction Menu (hidden by default) -->
@@ -186,6 +239,16 @@ document.addEventListener('DOMContentLoaded', function() {
     let reactionTimer;
     let menuTimeout;
     
+    // Map reaction types to display text and colors
+    const reactionDisplay = {
+        'like': { text: 'Like', color: '#3182ce', icon: 'fa-thumbs-up' },
+        'love': { text: 'Love', color: '#f56565', icon: 'fa-heart' },
+        'haha': { text: 'Haha', color: '#ecc94b', icon: 'fa-laugh' },
+        'wow': { text: 'Wow', color: '#9f7aea', icon: 'fa-surprise' },
+        'sad': { text: 'Sad', color: '#4299e1', icon: 'fa-sad-tear' },
+        'angry': { text: 'Angry', color: '#e53e3e', icon: 'fa-angry' }
+    };
+    
     // For each reaction container
     document.querySelectorAll('.reaction-container').forEach(container => {
         const likeBtn = container.querySelector('.main-like-btn');
@@ -240,8 +303,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const postId = this.dataset.postId;
                 const reactionType = this.dataset.reaction;
                 const postCard = this.closest('.post-card');
+                const mainLikeBtn = postCard.querySelector('.main-like-btn');
                 
-                // Send reaction to server
                 fetch(`/ajax/react/${postId}/`, {
                     method: 'POST',
                     headers: {
@@ -253,25 +316,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Update the main like button count
-                        const likeCountSpan = postCard.querySelector('.like-count');
-                        if (likeCountSpan) likeCountSpan.textContent = data.counts.like;
-                        
-                        // Update the main like button color based on user reaction
-                        const mainLikeBtn = postCard.querySelector('.main-like-btn');
+                        // Update the main like button based on user's current reaction
                         if (data.user_reaction) {
-                            mainLikeBtn.style.color = '#3182ce';
-                            mainLikeBtn.style.fontWeight = '600';
-                            mainLikeBtn.querySelector('i').style.color = '#3182ce';
+                            // User has a reaction - update button to show that reaction
+                            const reaction = reactionDisplay[data.user_reaction];
+                            mainLikeBtn.innerHTML = `<i class="fas ${reaction.icon} me-1" style="color: ${reaction.color};"></i> ${reaction.text} <span class="like-count" style="color: #718096;">${data.counts.like}</span>`;
+                            mainLikeBtn.style.color = reaction.color;
                         } else {
+                            // No reaction - show default Like button
+                            mainLikeBtn.innerHTML = `<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> Like <span class="like-count" style="color: #718096;">${data.counts.like}</span>`;
                             mainLikeBtn.style.color = '#718096';
-                            mainLikeBtn.style.fontWeight = '500';
-                            mainLikeBtn.querySelector('i').style.color = '#718096';
                         }
                         
-                        // Update total reactions
-                        const totalReactions = Object.values(data.counts).reduce((a, b) => a + b, 0);
-                        postCard.querySelector('.reactions-count').textContent = totalReactions;
+                        // ===== FACEBOOK STYLE REACTION STATS =====
+                        const counts = data.counts;
+                        const totalReactions = Object.values(counts).reduce((a, b) => a + b, 0);
+                        
+                        // Find the most popular reaction
+                        let mostPopular = 0;
+                        let mostPopularType = 'like';
+                        for (const [type, count] of Object.entries(counts)) {
+                            if (count > mostPopular) {
+                                mostPopular = count;
+                                mostPopularType = type;
+                            }
+                        }
+                        
+                        // Update the reaction stats span with appropriate icon
+                        const reactionStatsSpan = postCard.querySelector('.reaction-stats');
+                        if (totalReactions > 0) {
+                            let iconHtml = '';
+                            
+                            switch(mostPopularType) {
+                                case 'like':
+                                    iconHtml = '<i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>';
+                                    break;
+                                case 'love':
+                                    iconHtml = '<i class="fas fa-heart me-1" style="color: #f56565;"></i>';
+                                    break;
+                                case 'haha':
+                                    iconHtml = '<i class="fas fa-laugh me-1" style="color: #ecc94b;"></i>';
+                                    break;
+                                case 'wow':
+                                    iconHtml = '<i class="fas fa-surprise me-1" style="color: #9f7aea;"></i>';
+                                    break;
+                                case 'sad':
+                                    iconHtml = '<i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i>';
+                                    break;
+                                case 'angry':
+                                    iconHtml = '<i class="fas fa-angry me-1" style="color: #e53e3e;"></i>';
+                                    break;
+                            }
+                            
+                            reactionStatsSpan.innerHTML = iconHtml + ' <span class="reactions-count">' + totalReactions + '</span>';
+                        } else {
+                            reactionStatsSpan.innerHTML = '<i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> <span class="reactions-count">0</span>';
+                        }
                         
                         // Hide the menu after selection
                         reactionMenu.style.display = 'none';
