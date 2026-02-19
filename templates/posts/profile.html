@@ -30,12 +30,12 @@
             </div>
             <div class="row mt-4">
                 <div class="col">
-                    <h3 class="fw-bold">{{ posts.count }}</h3>
+                    <h3 class="fw-bold">{{ user_posts.count }}</h3>
                     <p>Posts</p>
                 </div>
                 <div class="col">
-                    <h3 class="fw-bold">{{ profile_user.posts.all|length }}</h3>
-                    <p>Total Posts</p>
+                    <h3 class="fw-bold">{{ profile_user.date_joined|date:"M Y" }}</h3>
+                    <p>Joined</p>
                 </div>
                 <div class="col">
                     <h3 class="fw-bold">{{ profile_user.last_login|timesince }}</h3>
@@ -44,13 +44,13 @@
             </div>
         </div>
 
-        {% if posts %}
+        {% if user_posts %}
             <h3 class="text-white mb-4" style="font-weight: 700; animation: fadeIn 0.5s;">
                 {% if is_own_profile %}Your{% else %}{{ profile_user.username }}'s{% endif %} Posts
             </h3>
         {% endif %}
 
-        {% for post in posts %}
+        {% for post in user_posts %}
             <div class="glass-card" style="animation: fadeInUp 0.5s; animation-delay: {{ forloop.counter0|divisibleby:3 }}s;">
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
@@ -64,8 +64,6 @@
                                 <div>
                                     <small class="text-muted">
                                         <i class="far fa-clock me-1"></i>{{ post.created_at|timesince }} ago
-                                        <span class="mx-2">•</span>
-                                        <i class="far fa-eye me-1"></i>{{ post.view_count }} views
                                     </small>
                                 </div>
                             </div>

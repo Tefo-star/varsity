@@ -15,7 +15,7 @@ urlpatterns = [
     # Profile
     path('profile/', views.profile, name='profile'),
     path('profile/<str:username>/', views.profile, name='user_profile'),
-    path('profile/<str:username>/follow/', views.toggle_follow, name='toggle_follow'),
+    # Follow URL REMOVED
     
     # Notifications
     path('notifications/', views.notifications, name='notifications'),
@@ -38,7 +38,7 @@ urlpatterns = [
     path('ajax/post/<int:post_id>/save/', views.ajax_save_post, name='ajax_save_post'),
     path('ajax/post/<int:post_id>/share/', views.ajax_share_post, name='ajax_share_post'),
     path('ajax/post/<int:post_id>/report/', views.ajax_report_post, name='ajax_report_post'),
-    path('ajax/post/<int:post_id>/reactions/', views.get_post_reactions, name='get_post_reactions'),  # NEW URL
+    path('ajax/post/<int:post_id>/reactions/', views.get_post_reactions, name='get_post_reactions'),
     
     # Legacy endpoints
     path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),

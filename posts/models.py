@@ -202,7 +202,7 @@ class Notification(models.Model):
         ('reply', 'Reply'),
         ('share', 'Share'),
         ('mention', 'Mention'),
-        ('follow', 'Follow'),
+        # ('follow', 'Follow'),  # REMOVED
     ]
     
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

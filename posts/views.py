@@ -21,7 +21,7 @@ import sys
 from .models import (
     Post, Comment, Reaction, CommentReaction, 
     PostShare, PostSave, PostReport, Notification,
-    UserActivity, Follow
+    UserActivity
 )
 from .forms import PostForm, CommentForm
 
@@ -223,73 +223,13 @@ def profile(request, username=None):
     user_activity, created = UserActivity.objects.get_or_create(user=profile_user)
     user_posts = Post.objects.filter(author=profile_user, is_archived=False)
     
-    # Check follow status
-    is_following = False
-    if request.user.is_authenticated and request.user != profile_user:
-        is_following = Follow.objects.filter(
-            follower=request.user,
-            following=profile_user
-        ).exists()
-    
-    # Get followers/following counts
-    followers_count = Follow.objects.filter(following=profile_user).count()
-    following_count = Follow.objects.filter(follower=profile_user).count()
-    
     context = {
         'profile_user': profile_user,
         'user_activity': user_activity,
         'user_posts': user_posts,
-        'is_following': is_following,
-        'followers_count': followers_count,
-        'following_count': following_count,
+        'is_own_profile': request.user == profile_user,
     }
     return render(request, 'posts/profile.html', context)
-
-# ==================== FOLLOW/UNFOLLOW ====================
-@login_required
-@require_POST
-def toggle_follow(request, username):
-    target_user = get_object_or_404(User, username=username)
-    
-    if request.user == target_user:
-        return JsonResponse({'success': False, 'error': "Can't follow yourself"})
-    
-    follow, created = Follow.objects.get_or_create(
-        follower=request.user,
-        following=target_user
-    )
-    
-    if not created:
-        follow.delete()
-        is_following = False
-    else:
-        # Create notification
-        Notification.objects.create(
-            recipient=target_user,
-            sender=request.user,
-            notification_type='follow'
-        )
-        is_following = True
-    
-    # Update counts
-    followers_count = Follow.objects.filter(following=target_user).count()
-    following_count = Follow.objects.filter(follower=request.user).count()
-    
-    # Update user activity counts
-    target_activity, _ = UserActivity.objects.get_or_create(user=target_user)
-    target_activity.follower_count = followers_count
-    target_activity.save()
-    
-    user_activity, _ = UserActivity.objects.get_or_create(user=request.user)
-    user_activity.following_count = following_count
-    user_activity.save()
-    
-    return JsonResponse({
-        'success': True,
-        'is_following': is_following,
-        'followers_count': followers_count,
-        'following_count': following_count
-    })
 
 # ==================== NOTIFICATIONS ====================
 @login_required
