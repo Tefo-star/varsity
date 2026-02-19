@@ -1,11 +1,6 @@
 // ==================== REACTIONS HOVER MENU ====================
-// This file handles ONLY the Facebook-style hover reaction menu
-
 (function() {
     'use strict';
-    
-    let reactionTimer;
-    let menuTimeout;
     
     const reactionData = {
         'love': { icon: 'fa-heart', text: 'Love', color: '#f56565' },
@@ -23,29 +18,27 @@
             
             if (!likeBtn || !hoverMenu) return;
             
-            // Remove old listeners
             likeBtn.removeEventListener('mouseenter', handleMouseEnter);
             likeBtn.removeEventListener('mouseleave', handleMouseLeave);
             hoverMenu.removeEventListener('mouseenter', handleMenuEnter);
             hoverMenu.removeEventListener('mouseleave', handleMenuLeave);
             
-            // Store references
             likeBtn._hoverMenu = hoverMenu;
             hoverMenu._likeBtn = likeBtn;
             
-            // Add listeners
             likeBtn.addEventListener('mouseenter', handleMouseEnter);
             likeBtn.addEventListener('mouseleave', handleMouseLeave);
             hoverMenu.addEventListener('mouseenter', handleMenuEnter);
             hoverMenu.addEventListener('mouseleave', handleMenuLeave);
             
-            // Reaction option clicks
             hoverMenu.querySelectorAll('.reaction-option').forEach(option => {
                 option.removeEventListener('click', handleReactionClick);
                 option.addEventListener('click', handleReactionClick);
             });
         });
     }
+    
+    let reactionTimer, menuTimeout;
     
     function handleMouseEnter(e) {
         const likeBtn = e.currentTarget;
@@ -87,7 +80,6 @@
         const likeBtn = postCard.querySelector('.main-like-btn');
         const hoverMenu = option.closest('.reaction-hover-menu');
         
-        // Disable and show loading
         likeBtn.disabled = true;
         const originalContent = likeBtn.innerHTML;
         likeBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -96,7 +88,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                'X-CSRFToken': getCsrfToken()
             },
             body: JSON.stringify({ reaction_type: reaction })
         })
@@ -157,9 +149,18 @@
         counter.innerHTML = icons[mostPopular] + ' <span>' + total + '</span>';
     }
     
+    function getCsrfToken() {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') return value;
+        }
+        return '';
+    }
+    
     document.addEventListener('DOMContentLoaded', initReactionMenus);
     
-    const observer = new MutationObserver(() => initReactionMenus());
+    const observer = new MutationObserver(initReactionMenus);
     const container = document.getElementById('posts-container');
     if (container) observer.observe(container, { childList: true, subtree: true });
 })();
