@@ -43,13 +43,15 @@
                     <i class="fas fa-heart me-1" style="font-size: 0.7rem;"></i> Like <span class="comment-like-count">{{ comment.get_reaction_counts.like }}</span>
                 </button>
                 
-                <!-- REPLY BUTTON -->
-                <button class="btn btn-link p-0 reply-to-comment-btn" 
-                        data-comment-id="{{ comment.id }}" 
-                        data-post-id="{{ comment.post.id }}"
-                        style="font-size: 0.8rem; background: none; border: none; color: #718096; padding: 0; text-decoration: none;">
-                    <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i> Reply
-                </button>
+                <!-- REPLY BUTTON - Only for top-level comments -->
+                {% if not comment.parent %}
+                    <button class="btn btn-link p-0 reply-to-comment-btn" 
+                            data-comment-id="{{ comment.id }}" 
+                            data-post-id="{{ comment.post.id }}"
+                            style="font-size: 0.8rem; background: none; border: none; color: #718096; padding: 0; text-decoration: none;">
+                        <i class="fas fa-reply me-1" style="font-size: 0.7rem;"></i> Reply
+                    </button>
+                {% endif %}
                 
                 {% if comment.reply_count > 0 %}
                     <button class="btn btn-link p-0 view-replies-btn" data-comment-id="{{ comment.id }}" style="font-size: 0.8rem; background: none; border: none; color: #667eea; padding: 0; text-decoration: none;">
@@ -58,24 +60,26 @@
                 {% endif %}
             </div>
             
-            <!-- Reply form -->
-            <div class="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-sm reply-input" 
-                           placeholder="Write a reply..." 
-                           data-parent-id="{{ comment.id }}" 
-                           data-post-id="{{ comment.post.id }}"
-                           style="border-radius: 20px; padding: 8px 15px; border: 1px solid #e2e8f0; width: 100%;">
-                    <button class="btn btn-primary btn-sm submit-reply-btn" 
-                            data-parent-id="{{ comment.id }}"
-                            style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 20px; color: white; font-weight: 500;">
-                        Reply
-                    </button>
+            <!-- Reply form - Only for top-level comments -->
+            {% if not comment.parent %}
+                <div class="reply-form-{{ comment.id }}" style="display: none; margin-top: 10px;">
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm reply-input" 
+                               placeholder="Write a reply..." 
+                               data-parent-id="{{ comment.id }}" 
+                               data-post-id="{{ comment.post.id }}"
+                               style="border-radius: 20px; padding: 8px 15px; border: 1px solid #e2e8f0; width: 100%;">
+                        <button class="btn btn-primary btn-sm submit-reply-btn" 
+                                data-parent-id="{{ comment.id }}"
+                                style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 8px 20px; color: white; font-weight: 500;">
+                            Reply
+                        </button>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
             
             <!-- Container for replies -->
-            <div class="replies-{{ comment.id }}" style="margin-top: 10px;">
+            <div class="replies-{{ comment.id }}" style="margin-top: 10px; display: {% if comment.reply_count > 0 %}block{% else %}none{% endif %};">
                 {% for reply in comment.replies.all %}
                     {% include 'posts/_comment.html' with comment=reply %}
                 {% endfor %}
@@ -86,6 +90,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Comment reply script loaded');
+    
     // Reply button functionality
     document.querySelectorAll('.reply-to-comment-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -95,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const replyForm = document.querySelector(`.reply-form-${commentId}`);
             if (replyForm) {
                 replyForm.style.display = 'block';
+                replyForm.querySelector('input').focus();
             }
         });
     });
@@ -118,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Disable button
             btn.disabled = true;
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             
             // Get CSRF token
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
@@ -134,19 +141,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     parent_id: parentId 
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     location.reload();
                 } else {
-                    alert(data.error || 'Error posting reply');
+                    alert('Error: ' + data.error);
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Network error');
+                console.error('Fetch error:', error);
+                alert('Network error: ' + error.message);
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             });
@@ -173,11 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    if (data.action === 'added') {
-                        this.classList.add('active');
-                    } else {
-                        this.classList.remove('active');
-                    }
                     countSpan.textContent = data.reaction_count;
                 }
             });
@@ -224,7 +231,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.textContent = 'Hide replies';
             } else {
                 repliesDiv.style.display = 'none';
-                this.textContent = `View ${repliesDiv.children.length} repl${repliesDiv.children.length === 1 ? 'y' : 'ies'}`;
+                const count = repliesDiv.children.length;
+                this.textContent = `View ${count} repl${count === 1 ? 'y' : 'ies'}`;
             }
         });
     });

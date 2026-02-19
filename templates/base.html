@@ -35,7 +35,7 @@
         body {
             background: var(--primary-gradient);
             min-height: 100vh;
-            padding-bottom: 70px; /* Space for mobile bottom nav */
+            padding-bottom: 70px;
             margin: 0;
             overflow-x: hidden;
         }
@@ -412,7 +412,6 @@
             opacity: 0.7;
         }
 
-        /* Reply post styling */
         .post-card[data-reply="true"] {
             border-left: 3px solid #667eea;
         }
@@ -427,12 +426,10 @@
                 font-size: 1.2rem !important;
             }
             
-            /* Hide desktop nav items on mobile (they'll be in bottom nav) */
             .navbar-nav .nav-item:not(.online-counter):not(.notification-item) {
                 display: none;
             }
             
-            /* Keep online counter and notification in top nav */
             .navbar-nav .online-counter,
             .navbar-nav .notification-item {
                 display: block;
@@ -460,7 +457,6 @@
                 overflow-y: auto;
             }
             
-            /* Make cards more mobile-friendly */
             .glass-card {
                 padding: 15px !important;
                 margin: 10px 0 !important;
@@ -480,24 +476,20 @@
                 font-size: 0.9rem !important;
             }
             
-            /* Reaction buttons on mobile */
             .reaction-btn {
                 padding: 5px 10px !important;
                 font-size: 0.85rem !important;
             }
             
-            /* Fix post headers on mobile */
             .d-flex.align-items-center {
                 flex-wrap: wrap;
             }
             
-            /* Ensure the online counter fits */
             .online-counter {
                 width: auto !important;
                 margin: 0 !important;
             }
             
-            /* Better touch targets */
             .nav-link, .btn-create {
                 padding: 6px 12px !important;
                 font-size: 0.9rem !important;
@@ -506,7 +498,6 @@
                 align-items: center;
             }
             
-            /* Make clickable areas obvious */
             .glass-card {
                 cursor: pointer;
                 transition: transform 0.2s;
@@ -530,7 +521,6 @@
             }
         }
 
-        /* ==================== UTILITY CLASSES ==================== */
         .cursor-pointer {
             cursor: pointer;
         }
@@ -549,7 +539,6 @@
             background: var(--secondary-gradient);
         }
 
-        /* ==================== ANIMATIONS ==================== */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -591,6 +580,9 @@
     </style>
 </head>
 <body>
+    <!-- CSRF Token for AJAX requests - FIXED -->
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
     <!-- Tefo's Celebration Banner -->
     <div style="position: relative;">
         <div class="announcement-banner">
@@ -760,32 +752,17 @@
     <script src="{% static 'js/reactions.js' %}"></script>
     <script src="{% static 'js/reactions-modal.js' %}"></script>
 
-    <!-- Optional Confetti Effect (uncomment if you want it) -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
-    <script>
-        window.onload = function() {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#667eea', '#764ba2', '#ff6b6b', '#ffd700']
-            });
-        };
-    </script> -->
-
     <script>
         // ==================== WEBSOCKET FOR ONLINE COUNTER ====================
         document.addEventListener('DOMContentLoaded', function() {
             const onlineCounter = document.getElementById('online-counter');
             const onlineCount = document.getElementById('online-count');
             
-            // If online counter doesn't exist (like login/register pages), skip WebSocket
             if (!onlineCounter || !onlineCount) {
                 console.log('Online counter not on this page - skipping WebSocket connection');
                 return;
             }
             
-            // Use wss:// for HTTPS, ws:// for HTTP
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = wsProtocol + '//' + window.location.host + '/ws/online/';
             console.log('🔌 Connecting to WebSocket:', wsUrl);
@@ -820,7 +797,6 @@
                 onlineCounter.style.animation = 'none';
             };
             
-            // Send pings every 30 seconds to keep connection alive
             setInterval(() => {
                 if (onlineSocket.readyState === WebSocket.OPEN) {
                     onlineSocket.send(JSON.stringify({'type': 'ping'}));
@@ -829,7 +805,7 @@
             }, 30000);
         });
 
-        // ==================== NOTIFICATION CHECKER (ENABLED) ====================
+        // ==================== NOTIFICATION CHECKER ====================
         function checkNotifications() {
             fetch('/notifications/count/')
                 .then(response => response.json())
@@ -854,12 +830,8 @@
                 .catch(error => console.error('Error checking notifications:', error));
         }
 
-        // Check notifications if user is authenticated
         {% if user.is_authenticated %}
-            // Check on page load
             document.addEventListener('DOMContentLoaded', checkNotifications);
-            
-            // Check every 30 seconds
             setInterval(checkNotifications, 30000);
         {% endif %}
 
@@ -867,7 +839,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             const currentPath = window.location.pathname;
             
-            // Highlight desktop nav links
             document.querySelectorAll('.nav-link').forEach(link => {
                 const href = link.getAttribute('href');
                 if (href && currentPath.startsWith(href) && href !== '/') {
@@ -877,7 +848,6 @@
                 }
             });
             
-            // Highlight mobile nav links
             document.querySelectorAll('.mobile-nav-item').forEach(link => {
                 const href = link.getAttribute('href');
                 if (href && currentPath.startsWith(href) && href !== '/') {
@@ -888,20 +858,15 @@
             });
         });
 
-        // ==================== TOOLTIP INITIALIZATION ====================
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
 
-        // ==================== POPOVER INITIALIZATION ====================
         var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
         var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
             return new bootstrap.Popover(popoverTriggerEl)
         });
-
-        // ==================== DARK MODE TOGGLE (Optional) ====================
-        // Add dark mode functionality if needed
     </script>
 </body>
 </html>
