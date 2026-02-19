@@ -1,3 +1,4 @@
+{% load static %}
 {% load ganalytics %}
 <!DOCTYPE html>
 <html lang="en">
@@ -719,9 +720,10 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Load JavaScript files - Separate features (ADDED) -->
+    <!-- Load JavaScript files - Separate features -->
     <script src="{% static 'js/comments.js' %}"></script>
     <script src="{% static 'js/reactions.js' %}"></script>
+    <script src="{% static 'js/reactions-modal.js' %}"></script>
 
     <!-- Optional Confetti Effect (uncomment if you want it) -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
