@@ -30,14 +30,9 @@
                             {% if post.author.activity.university == 'visitor' %}🌟 VISITOR{% endif %}
                         </span>
                     {% endif %}
-                    {% if post.author.activity.is_verified %}
-                        <span class="verified-badge" style="color: #1DA1F2;">
-                            <i class="fas fa-check-circle"></i>
-                        </span>
-                    {% endif %}
                 </div>
                 <div class="text-muted" style="font-size: 0.9rem; color: #718096;">
-                    <span class="post-time" title="{{ post.created_at|date:'F j, Y, g:i a' }}">{{ post.created_at|timesince }} ago</span>
+                    {{ post.created_at|timesince }} ago
                     {% if post.is_pinned %}
                         <span class="ms-2"><i class="fas fa-thumbtack" style="color: #667eea;"></i> Pinned</span>
                     {% endif %}
@@ -45,36 +40,39 @@
             </div>
         </div>
         <div>
-            <span class="badge" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 50px; font-weight: 500;">
+            <span class="badge" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 50px;">
                 {{ post.get_post_type_display }}
             </span>
         </div>
     </div>
 
     <!-- Post Title -->
-    <h3 style="font-weight: 700; margin-bottom: 15px; font-size: 1.5rem; color: #1a202c;">
-        <a href="{% url 'post_detail' post.id %}" style="text-decoration: none; color: inherit;">{{ post.title }}</a>
+    <h3 style="font-weight: 700; margin-bottom: 15px;">
+        <a href="{% url 'post_detail' post.id %}" style="text-decoration: none; color: #1a202c;">{{ post.title }}</a>
     </h3>
 
-    <!-- Post Content Preview -->
+    <!-- Post Content -->
     {% if post.content %}
-        <div style="color: #4a5568; line-height: 1.7; margin-bottom: 20px; font-size: 1rem;">
+        <div style="color: #4a5568; margin-bottom: 20px;">
             {{ post.content|truncatechars:200|linebreaks }}
         </div>
     {% endif %}
 
-    <!-- Post Image Preview -->
+    <!-- Post Image -->
     {% if post.image %}
         <div class="text-center mb-4">
-            <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 300px; border-radius: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" onclick="openImageModal('{{ post.image.url }}')">
+            <img src="{{ post.image.url }}" class="img-fluid" alt="{{ post.title }}" style="max-height: 300px; border-radius: 15px; cursor: pointer;" onclick="openImageModal('{{ post.image.url }}')">
         </div>
     {% endif %}
 
-    <!-- Post Stats -->
+    <!-- Post Stats - Clickable Reaction Counter -->
     <div class="d-flex justify-content-between mb-2" style="color: #718096; font-size: 0.9rem;">
         <div class="d-flex align-items-center">
-            <!-- Reaction Stats - Clickable -->
-            <span class="me-3 reaction-stats" data-post-id="{{ post.id }}" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#reactionsModal-{{ post.id }}">
+            <!-- Reaction Counter - Click to see who reacted -->
+            <span class="me-3 reaction-counter" 
+                  data-post-id="{{ post.id }}" 
+                  style="cursor: pointer;"
+                  onclick="showReactions('{{ post.id }}')">
                 {% with counts=post.get_reaction_counts %}
                     {% with total=counts.like|add:counts.love|add:counts.haha|add:counts.wow|add:counts.sad|add:counts.angry %}
                         {% if total > 0 %}
@@ -91,91 +89,65 @@
                             {% else %}
                                 <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i>
                             {% endif %}
-                            <span class="reactions-count">{{ total }}</span>
+                            <span>{{ total }}</span>
                         {% else %}
                             <i class="fas fa-thumbs-up me-1" style="color: #718096;"></i>
-                            <span class="reactions-count">0</span>
+                            <span>0</span>
                         {% endif %}
                     {% endwith %}
                 {% endwith %}
             </span>
-            <span class="me-3"><i class="fas fa-comment me-1" style="color: #4299e1;"></i> <span class="comments-count">{{ post.comment_count }}</span></span>
-            <span><i class="fas fa-share me-1" style="color: #48bb78;"></i> <span class="shares-count">{{ post.share_count }}</span></span>
+            <span class="me-3"><i class="fas fa-comment me-1" style="color: #4299e1;"></i> <span>{{ post.comment_count }}</span></span>
+            <span><i class="fas fa-share me-1" style="color: #48bb78;"></i> <span>{{ post.share_count }}</span></span>
         </div>
         <div>
-            <span><i class="fas fa-bookmark me-1" style="color: #ecc94b;"></i> <span class="saves-count">{{ post.save_count }}</span></span>
+            <span><i class="fas fa-bookmark me-1" style="color: #ecc94b;"></i> <span>{{ post.save_count }}</span></span>
         </div>
     </div>
 
     <!-- Action Bar -->
-    <div class="action-bar-wrapper" style="position: relative;">
-        <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3" style="border-color: #e2e8f0 !important;">
-            <!-- Reaction Container -->
-            <div class="reaction-container" style="position: relative;">
-                <!-- Main Like Button -->
-                <button class="btn btn-link text-decoration-none main-like-btn" 
-                        data-post-id="{{ post.id }}"
-                        style="color: {% if user_reaction %}{% if user_reaction == 'love' %}#f56565{% elif user_reaction == 'haha' %}#ecc94b{% elif user_reaction == 'wow' %}#9f7aea{% elif user_reaction == 'sad' %}#4299e1{% elif user_reaction == 'angry' %}#e53e3e{% else %}#3182ce{% endif %}{% else %}#718096{% endif %}; font-weight: {% if user_reaction %}600{% else %}500{% endif %}; padding: 0; border: none; background: none;">
-                    {% if user_reaction %}
-                        {% if user_reaction == 'love' %}
-                            <i class="fas fa-heart me-1" style="color: #f56565;"></i> Love
-                        {% elif user_reaction == 'haha' %}
-                            <i class="fas fa-laugh me-1" style="color: #ecc94b;"></i> Haha
-                        {% elif user_reaction == 'wow' %}
-                            <i class="fas fa-surprise me-1" style="color: #9f7aea;"></i> Wow
-                        {% elif user_reaction == 'sad' %}
-                            <i class="fas fa-sad-tear me-1" style="color: #4299e1;"></i> Sad
-                        {% elif user_reaction == 'angry' %}
-                            <i class="fas fa-angry me-1" style="color: #e53e3e;"></i> Angry
-                        {% else %}
-                            <i class="fas fa-thumbs-up me-1" style="color: #3182ce;"></i> Like
-                        {% endif %}
-                    {% else %}
-                        <i class="fas fa-thumbs-up me-1" style="color: #718096;"></i> Like
-                    {% endif %}
-                    <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
-                </button>
-                
-                <!-- Reaction Menu -->
-                <div class="reaction-menu" style="display: none; position: absolute; bottom: 100%; left: 0; background: white; border-radius: 40px; padding: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 10px; z-index: 1000; white-space: nowrap;">
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="love" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Love">
-                        <span style="font-size: 28px;">❤️</span>
-                    </button>
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="haha" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Haha">
-                        <span style="font-size: 28px;">😂</span>
-                    </button>
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="wow" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Wow">
-                        <span style="font-size: 28px;">😮</span>
-                    </button>
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="sad" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Sad">
-                        <span style="font-size: 28px;">😢</span>
-                    </button>
-                    <button class="btn btn-link reaction-option" data-post-id="{{ post.id }}" data-reaction="angry" style="font-size: 24px; padding: 0 5px; border: none; background: none;" title="Angry">
-                        <span style="font-size: 28px;">😡</span>
-                    </button>
-                </div>
+    <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3">
+        <!-- Like Button with Hover Menu -->
+        <div class="reaction-container" style="position: relative;">
+            <button class="btn btn-link text-decoration-none main-like-btn" 
+                    data-post-id="{{ post.id }}"
+                    style="color: {% if user_reaction %}{% if user_reaction == 'love' %}#f56565{% elif user_reaction == 'haha' %}#ecc94b{% elif user_reaction == 'wow' %}#9f7aea{% elif user_reaction == 'sad' %}#4299e1{% elif user_reaction == 'angry' %}#e53e3e{% else %}#3182ce{% endif %}{% else %}#718096{% endif %}; padding: 0; border: none; background: none;">
+                <i class="fas {% if user_reaction == 'love' %}fa-heart{% elif user_reaction == 'haha' %}fa-laugh{% elif user_reaction == 'wow' %}fa-surprise{% elif user_reaction == 'sad' %}fa-sad-tear{% elif user_reaction == 'angry' %}fa-angry{% else %}fa-thumbs-up{% endif %} me-1"></i>
+                {% if user_reaction == 'love' %}Love
+                {% elif user_reaction == 'haha' %}Haha
+                {% elif user_reaction == 'wow' %}Wow
+                {% elif user_reaction == 'sad' %}Sad
+                {% elif user_reaction == 'angry' %}Angry
+                {% else %}Like{% endif %}
+                <span class="like-count" style="color: #718096;">{{ post.get_reaction_counts.like }}</span>
+            </button>
+            
+            <!-- Hover Menu -->
+            <div class="reaction-hover-menu" style="display: none; position: absolute; bottom: 100%; left: 0; background: white; border-radius: 40px; padding: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 10px; z-index: 1000;">
+                <button class="reaction-option" data-post-id="{{ post.id }}" data-reaction="love" style="font-size: 28px; padding: 0 8px; border: none; background: none; cursor: pointer;" title="Love">❤️</button>
+                <button class="reaction-option" data-post-id="{{ post.id }}" data-reaction="haha" style="font-size: 28px; padding: 0 8px; border: none; background: none; cursor: pointer;" title="Haha">😂</button>
+                <button class="reaction-option" data-post-id="{{ post.id }}" data-reaction="wow" style="font-size: 28px; padding: 0 8px; border: none; background: none; cursor: pointer;" title="Wow">😮</button>
+                <button class="reaction-option" data-post-id="{{ post.id }}" data-reaction="sad" style="font-size: 28px; padding: 0 8px; border: none; background: none; cursor: pointer;" title="Sad">😢</button>
+                <button class="reaction-option" data-post-id="{{ post.id }}" data-reaction="angry" style="font-size: 28px; padding: 0 8px; border: none; background: none; cursor: pointer;" title="Angry">😡</button>
             </div>
-            
-            <!-- Comment Button -->
-            <button class="btn btn-link text-decoration-none comment-toggle-btn" data-post-id="{{ post.id }}" style="color: #4a5568; font-weight: 500; padding: 0; border: none; background: none;">
-                <i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment
-            </button>
-            
-            <!-- Share Button -->
-            <button class="btn btn-link text-decoration-none share-btn" data-post-id="{{ post.id }}" style="color: #4a5568; font-weight: 500; padding: 0; border: none; background: none;">
-                <i class="fas fa-share me-1" style="color: #48bb78;"></i> Share
-            </button>
-            
-            <!-- Save Button -->
-            <button class="btn btn-link text-decoration-none save-btn {% if user_saved %}active{% endif %}" 
-                    data-post-id="{{ post.id }}" 
-                    style="color: {% if user_saved %}#ecc94b{% else %}#4a5568{% endif %}; font-weight: 500; padding: 0; border: none; background: none;">
-                <i class="fas fa-bookmark me-1" style="color: {% if user_saved %}#ecc94b{% else %}#718096{% endif %};"></i> Save
-            </button>
         </div>
+        
+        <button class="btn btn-link text-decoration-none comment-toggle-btn" data-post-id="{{ post.id }}" style="color: #4a5568; padding: 0; border: none; background: none;">
+            <i class="fas fa-comment me-1" style="color: #4299e1;"></i> Comment
+        </button>
+        
+        <button class="btn btn-link text-decoration-none share-btn" data-post-id="{{ post.id }}" style="color: #4a5568; padding: 0; border: none; background: none;">
+            <i class="fas fa-share me-1" style="color: #48bb78;"></i> Share
+        </button>
+        
+        <button class="btn btn-link text-decoration-none save-btn {% if user_saved %}active{% endif %}" 
+                data-post-id="{{ post.id }}" 
+                style="color: {% if user_saved %}#ecc94b{% else %}#4a5568{% endif %}; padding: 0; border: none; background: none;">
+            <i class="fas fa-bookmark me-1" style="color: {% if user_saved %}#ecc94b{% else %}#718096{% endif %};"></i> Save
+        </button>
     </div>
 
-    <!-- Comments Section -->
+    <!-- Comments Section (Hidden by default) -->
     <div class="comments-section comments-section-{{ post.id }}" style="display: none;">
         <div class="comments-container comments-container-{{ post.id }} mb-3">
             {% for comment in post.comments.all|slice:":3" %}
@@ -187,7 +159,7 @@
         
         {% if post.comment_count > 3 %}
             <div class="text-center mb-3">
-                <button class="btn btn-link view-all-comments" data-post-id="{{ post.id }}" style="color: #667eea; text-decoration: none;">
+                <button class="btn btn-link view-all-comments" data-post-id="{{ post.id }}">
                     View all {{ post.comment_count }} comments
                 </button>
             </div>
@@ -196,55 +168,194 @@
         {% if user.is_authenticated %}
             <div class="add-comment-form mt-3">
                 <div class="d-flex gap-2">
-                    <div class="flex-grow-1">
-                        <input type="text" class="form-control comment-input" 
-                               placeholder="Add a comment..." 
-                               data-post-id="{{ post.id }}"
-                               style="border-radius: 20px; border: 1px solid #e2e8f0; padding: 10px 15px;">
-                    </div>
+                    <input type="text" class="form-control comment-input" 
+                           placeholder="Add a comment..." 
+                           data-post-id="{{ post.id }}"
+                           style="border-radius: 20px;">
                     <button class="btn btn-primary submit-comment-btn" 
                             data-post-id="{{ post.id }}"
-                            style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none; padding: 10px 20px; color: white; font-weight: 500;">
+                            style="border-radius: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border: none;">
                         Post
                     </button>
                 </div>
             </div>
         {% endif %}
     </div>
+</div>
 
-    <!-- Reactions Modal -->
-    <div class="modal fade" id="reactionsModal-{{ post.id }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 20px; background: white;">
-                <div class="modal-header" style="border-bottom: 1px solid #e2e8f0; padding: 15px 20px;">
-                    <h5 class="modal-title" style="font-weight: 600;">Reactions</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" style="padding: 0; max-height: 400px; overflow-y: auto;">
-                    <!-- Tabs -->
-                    <div class="reaction-tabs" style="display: flex; border-bottom: 1px solid #e2e8f0; padding: 10px 15px; background: white;">
-                        <button class="reaction-tab active" data-tab="all" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 600; color: #3182ce; border-bottom: 2px solid #3182ce;">
-                            All <span>{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span>
-                        </button>
-                        <button class="reaction-tab" data-tab="like" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            👍 <span>{{ post.get_reaction_counts.like }}</span>
-                        </button>
-                        <button class="reaction-tab" data-tab="love" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            ❤️ <span>{{ post.get_reaction_counts.love }}</span>
-                        </button>
-                        <button class="reaction-tab" data-tab="haha" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😂 <span>{{ post.get_reaction_counts.haha }}</span>
-                        </button>
-                        <button class="reaction-tab" data-tab="wow" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😮 <span>{{ post.get_reaction_counts.wow }}</span>
-                        </button>
-                        <button class="reaction-tab" data-tab="sad" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😢 <span>{{ post.get_reaction_counts.sad }}</span>
-                        </button>
-                        <button class="reaction-tab" data-tab="angry" data-post-id="{{ post.id }}" style="flex: 1; background: none; border: none; padding: 8px; font-weight: 500; color: #718096;">
-                            😡 <span>{{ post.get_reaction_counts.angry }}</span>
-                        </button>
+<!-- Simple Reactions Popup Modal -->
+<div class="modal fade" id="reactionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius: 20px;">
+            <div class="modal-header" style="border-bottom: 1px solid #e2e8f0;">
+                <h5 class="modal-title">Reactions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reactionsList" style="max-height: 400px; overflow-y: auto; padding: 0;">
+                <!-- Reactions will be loaded here -->
+                <div class="text-center py-4" id="reactionsLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                    
-                    <!-- Reactions List -->
-                    <div id="reactions-list-{{ post.id }}" class="reactions-list" style="padding: 10px 15
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== REACTION HOVER MENU ====================
+document.addEventListener('DOMContentLoaded', function() {
+    // Hover menu functionality
+    document.querySelectorAll('.reaction-container').forEach(container => {
+        const likeBtn = container.querySelector('.main-like-btn');
+        const hoverMenu = container.querySelector('.reaction-hover-menu');
+        let hoverTimer;
+        
+        likeBtn.addEventListener('mouseenter', () => {
+            clearTimeout(hoverTimer);
+            hoverTimer = setTimeout(() => {
+                hoverMenu.style.display = 'block';
+            }, 500);
+        });
+        
+        likeBtn.addEventListener('mouseleave', () => {
+            clearTimeout(hoverTimer);
+            setTimeout(() => {
+                if (!hoverMenu.matches(':hover')) {
+                    hoverMenu.style.display = 'none';
+                }
+            }, 200);
+        });
+        
+        hoverMenu.addEventListener('mouseleave', () => {
+            hoverMenu.style.display = 'none';
+        });
+        
+        // Reaction click
+        hoverMenu.querySelectorAll('.reaction-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const postId = this.dataset.postId;
+                const reaction = this.dataset.reaction;
+                
+                fetch(`/ajax/react/${postId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ reaction_type: reaction })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload(); // Simple refresh to update counts
+                    }
+                });
+                
+                hoverMenu.style.display = 'none';
+            });
+        });
+    });
+    
+    // Comment toggle
+    document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const postId = this.dataset.postId;
+            const commentsSection = document.querySelector(`.comments-section-${postId}`);
+            commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+        });
+    });
+});
+
+// ==================== SHOW REACTIONS POPUP ====================
+function showReactions(postId) {
+    const modal = new bootstrap.Modal(document.getElementById('reactionsModal'));
+    const listContainer = document.getElementById('reactionsList');
+    const loadingSpinner = document.getElementById('reactionsLoading');
+    
+    listContainer.innerHTML = '';
+    loadingSpinner.style.display = 'block';
+    
+    fetch(`/ajax/post/${postId}/reactions/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadingSpinner.style.display = 'none';
+                
+                let html = '<div style="padding: 10px;">';
+                
+                // Combine all reactions
+                const allReactions = [
+                    ...data.reactions.like.map(u => ({...u, reaction: '👍'})),
+                    ...data.reactions.love.map(u => ({...u, reaction: '❤️'})),
+                    ...data.reactions.haha.map(u => ({...u, reaction: '😂'})),
+                    ...data.reactions.wow.map(u => ({...u, reaction: '😮'})),
+                    ...data.reactions.sad.map(u => ({...u, reaction: '😢'})),
+                    ...data.reactions.angry.map(u => ({...u, reaction: '😡'}))
+                ];
+                
+                if (allReactions.length === 0) {
+                    html += '<p class="text-center text-muted py-3">No reactions yet</p>';
+                } else {
+                    allReactions.forEach(user => {
+                        html += `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0;">
+                                <span><strong>${user.username}</strong></span>
+                                <span style="font-size: 1.2rem;">${user.reaction}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += '</div>';
+                listContainer.innerHTML = html;
+                modal.show();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingSpinner.style.display = 'none';
+            listContainer.innerHTML = '<p class="text-center text-danger py-3">Error loading reactions</p>';
+            modal.show();
+        });
+}
+</script>
+
+<style>
+.reaction-hover-menu {
+    animation: slideUp 0.2s ease;
+}
+
+.reaction-hover-menu button {
+    transition: transform 0.2s;
+}
+
+.reaction-hover-menu button:hover {
+    transform: scale(1.3);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.save-btn.active {
+    color: #ecc94b !important;
+}
+
+.save-btn.active i {
+    color: #ecc94b !important;
+}
+</style>
