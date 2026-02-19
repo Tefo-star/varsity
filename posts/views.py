@@ -367,6 +367,50 @@ def ajax_react_to_post(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+# ==================== GET REACTIONS LIST ====================
+@login_required
+def get_post_reactions(request, post_id):
+    """Get list of users who reacted to a post, grouped by reaction type"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        # Get all reactions for this post with user details
+        reactions = Reaction.objects.filter(post=post).select_related(
+            'user', 'user__activity'
+        ).order_by('-created_at')
+        
+        # Group reactions by type
+        grouped_reactions = {
+            'like': [],
+            'love': [],
+            'haha': [],
+            'wow': [],
+            'sad': [],
+            'angry': []
+        }
+        
+        for reaction in reactions:
+            user_data = {
+                'id': reaction.user.id,
+                'username': reaction.user.username,
+                'profile_picture': reaction.user.activity.profile_picture.url if reaction.user.activity and reaction.user.activity.profile_picture else None,
+                'university': reaction.user.activity.university if reaction.user.activity and reaction.user.activity.university else None,
+                'is_verified': reaction.user.activity.is_verified if reaction.user.activity else False
+            }
+            grouped_reactions[reaction.reaction_type].append(user_data)
+        
+        # Get counts for each reaction type
+        counts = post.get_reaction_counts()
+        
+        return JsonResponse({
+            'success': True,
+            'reactions': grouped_reactions,
+            'counts': counts,
+            'total': sum(counts.values())
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 # ==================== AJAX ADD COMMENT ====================
 @login_required
 @require_POST

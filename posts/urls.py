@@ -38,6 +38,7 @@ urlpatterns = [
     path('ajax/post/<int:post_id>/save/', views.ajax_save_post, name='ajax_save_post'),
     path('ajax/post/<int:post_id>/share/', views.ajax_share_post, name='ajax_share_post'),
     path('ajax/post/<int:post_id>/report/', views.ajax_report_post, name='ajax_report_post'),
+    path('ajax/post/<int:post_id>/reactions/', views.get_post_reactions, name='get_post_reactions'),  # NEW URL
     
     # Legacy endpoints
     path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
@@ -45,7 +46,7 @@ urlpatterns = [
     
     # ==================== MIGRATION HELPERS ====================
     path('run-migrations/', views.run_posts_migrations, name='run_posts_migrations'),
-    path('fake-migration/', views.fake_post_migration, name='fake_post_migration'),  # NEW TEMPORARY URL
+    path('fake-migration/', views.fake_post_migration, name='fake_post_migration'),
     
     # Admin utilities
     path('list-users/', views.list_users, name='list_users'),
