@@ -103,21 +103,20 @@
         </div>
     {% endif %}
 
-    <!-- Post Stats -->
+    <!-- Post Stats - SHARE COUNTER REMOVED -->
     <div class="d-flex justify-content-between small text-muted mb-2">
         <div class="d-flex gap-3">
             <span class="cursor-pointer" onclick="showReactions('{{ post.id }}')">
                 <i class="fas fa-heart text-danger me-1"></i><span class="reactions-count">{{ post.get_reaction_counts|dictsortreversed:'value'|first }}</span>
             </span>
             <span><i class="fas fa-comment text-primary me-1"></i><span class="comments-count">{{ post.comment_count }}</span></span>
-            <span><i class="fas fa-share text-success me-1"></i><span class="shares-count">{{ post.share_count }}</span></span>
         </div>
         <div>
             <span><i class="fas fa-bookmark text-warning me-1"></i><span class="saves-count">{{ post.save_count }}</span></span>
         </div>
     </div>
 
-    <!-- Action Bar -->
+    <!-- Action Bar - SHARE BUTTON REMOVED -->
     <div class="d-flex justify-content-between align-items-center py-2 border-top border-bottom mb-3">
         <!-- Like Button with Hover -->
         <div class="reaction-container position-relative">
@@ -171,20 +170,13 @@
         </div>
     {% endif %}
 
-    <!-- Comments Section -->
+    <!-- Comments Section - SIMPLIFIED (no nested replies) -->
     <div class="comments-section comments-section-{{ post.id }}" style="display: none;">
         <div class="comments-container-{{ post.id }} mb-3">
-            {% for comment in post.comments.all|slice:":3" %}
-                {% if not comment.parent %}
-                    {% include 'posts/_comment.html' with comment=comment %}
-                {% endif %}
+            {% for comment in post.comments.all %}
+                {% include 'posts/_comment.html' with comment=comment %}
             {% endfor %}
         </div>
-        {% if post.comment_count > 3 %}
-            <div class="text-center mb-3">
-                <button class="btn btn-link view-all-comments" data-post-id="{{ post.id }}">View all {{ post.comment_count }} comments</button>
-            </div>
-        {% endif %}
         {% if user.is_authenticated %}
             <div class="add-comment-form">
                 <div class="d-flex gap-2">
@@ -266,7 +258,7 @@ document.querySelectorAll('.reaction-container').forEach(container => {
     });
 });
 
-// ==================== DELETE POST (UPDATED - Updates UI) ====================
+// ==================== DELETE POST ====================
 function confirmDelete(postId) {
     if (confirm('Delete this post?')) {
         const postCard = document.querySelector(`.post-card[data-post-id="${postId}"]`);

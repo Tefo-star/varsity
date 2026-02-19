@@ -6,7 +6,7 @@ from cloudinary.models import CloudinaryField
 class Post(models.Model):
     POST_TYPES = [
         ('MEME', 'Meme'),
-        ('VIDEO', 'Video'),
+        ('VIDEO', ' Video'),
         ('PIC', 'Picture'),
         ('TEXT', 'Text Post'),
         ('NEWS', 'News/Notice'),
@@ -26,7 +26,7 @@ class Post(models.Model):
     is_pinned = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     
-    # WhatsApp-style reply fields - WITH DEFAULTS
+    # WhatsApp-style reply fields
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     reply_count = models.IntegerField(default=0)
     
@@ -61,18 +61,13 @@ class Post(models.Model):
         return self.comments.count()
     
     @property
-    def share_count(self):
-        return self.shares.count()
-    
-    @property
     def save_count(self):
         return self.saves.count()
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='replies')
-    content = models.TextField()
+    content = models.TextField()  # No more parent field - no nested replies
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
@@ -81,19 +76,10 @@ class Comment(models.Model):
         ordering = ['created_at']
         indexes = [
             models.Index(fields=['post', 'created_at']),
-            models.Index(fields=['parent', 'created_at']),
         ]
     
     def __str__(self):
         return f"Comment by {self.author.username}"
-    
-    @property
-    def is_reply(self):
-        return self.parent is not None
-    
-    @property
-    def reply_count(self):
-        return self.replies.count()
     
     def get_reaction_counts(self):
         return {'like': self.reactions.filter(reaction_type='like').count()}
@@ -145,6 +131,7 @@ class Reaction(models.Model):
         return f"{self.user.username} reacted {self.reaction_type}"
 
 class PostShare(models.Model):
+    # This model can be removed entirely if you want, but keeping for now
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='shares')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)
@@ -197,8 +184,8 @@ class Notification(models.Model):
         ('reaction', 'Reaction'),
         ('comment', 'Comment'),
         ('reply', 'Reply'),
-        ('share', 'Share'),
         ('mention', 'Mention'),
+        # 'share' removed
     ]
     
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

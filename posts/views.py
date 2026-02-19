@@ -19,7 +19,7 @@ import io
 import sys
 from .models import (
     Post, Comment, Reaction, CommentReaction,
-    PostShare, PostSave, PostReport, Notification,
+    PostSave, PostReport, Notification,
     UserActivity
 )
 from .forms import PostForm, CommentForm
@@ -36,11 +36,10 @@ def home(request):
     posts_list = Post.objects.filter(is_archived=False).select_related(
         'author', 'author__activity', 'parent__author', 'parent__author__activity'
     ).prefetch_related(
-        'comments', 'reactions', 'shares', 'saves', 'replies'
+        'comments', 'reactions', 'saves', 'replies'
     ).annotate(
         total_reactions=Count('reactions'),
         comments_count=Count('comments'),
-        total_shares=Count('shares'),
         total_saves=Count('saves')
     ).order_by('-created_at')  # Most recent first - puts replies at TOP
 
@@ -78,11 +77,10 @@ def load_more_posts(request):
     posts_list = Post.objects.filter(is_archived=False).select_related(
         'author', 'author__activity', 'parent__author', 'parent__author__activity'
     ).prefetch_related(
-        'comments', 'reactions', 'shares', 'saves', 'replies'
+        'comments', 'reactions', 'saves', 'replies'
     ).annotate(
         total_reactions=Count('reactions'),
         comments_count=Count('comments'),
-        total_shares=Count('shares'),
         total_saves=Count('saves')
     ).order_by('-created_at')
 
@@ -141,9 +139,7 @@ def create_post(request):
 # ==================== POST DETAIL ====================
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id, is_archived=False)
-    comments = post.comments.filter(parent=None).select_related(
-        'author', 'author__activity'
-    ).prefetch_related('reactions', 'replies')
+    comments = post.comments.all().select_related('author', 'author__activity').prefetch_related('reactions')
 
     if request.method == 'POST' and request.user.is_authenticated:
         comment_form = CommentForm(request.POST)
@@ -179,7 +175,7 @@ def post_detail(request, post_id):
     }
     return render(request, 'posts/post_detail.html', context)
 
-# ==================== DELETE POST (FIXED - Updates reply_count) ====================
+# ==================== DELETE POST ====================
 @login_required
 def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
@@ -192,7 +188,7 @@ def delete_post(request, post_id):
         # If this post is a reply, update the parent's reply_count
         if post.parent:
             parent = post.parent
-            parent.reply_count = max(0, parent.reply_count - 1)  # Ensure it doesn't go negative
+            parent.reply_count = max(0, parent.reply_count - 1)
             parent.save(update_fields=['reply_count'])
 
         post.delete()
@@ -314,7 +310,7 @@ def get_post_reactions(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== AJAX ADD COMMENT ====================
+# ==================== AJAX ADD COMMENT (Simplified - no nested replies) ====================
 @login_required
 @require_POST
 def ajax_add_comment(request, post_id):
@@ -322,7 +318,6 @@ def ajax_add_comment(request, post_id):
         post = get_object_or_404(Post, id=post_id)
         data = json.loads(request.body)
         content = data.get('content')
-        parent_id = data.get('parent_id')
 
         if not content or not content.strip():
             return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
@@ -330,29 +325,17 @@ def ajax_add_comment(request, post_id):
         comment = Comment.objects.create(
             post=post,
             author=request.user,
-            content=content.strip(),
-            parent_id=parent_id
+            content=content.strip()
         )
 
-        if parent_id:
-            parent = Comment.objects.get(id=parent_id)
-            if parent.author != request.user:
-                Notification.objects.create(
-                    recipient=parent.author,
-                    sender=request.user,
-                    notification_type='reply',
-                    post=post,
-                    comment=comment
-                )
-        else:
-            if post.author != request.user:
-                Notification.objects.create(
-                    recipient=post.author,
-                    sender=request.user,
-                    notification_type='comment',
-                    post=post,
-                    comment=comment
-                )
+        if post.author != request.user:
+            Notification.objects.create(
+                recipient=post.author,
+                sender=request.user,
+                notification_type='comment',
+                post=post,
+                comment=comment
+            )
 
         comment_html = render_to_string('posts/_comment.html', {
             'comment': comment,
@@ -363,13 +346,12 @@ def ajax_add_comment(request, post_id):
             'success': True,
             'comment_html': comment_html,
             'comment_id': comment.id,
-            'parent_id': parent_id,
             'comment_count': post.comment_count
         })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== REPLY TO POST (FIXED - NO TITLE) ====================
+# ==================== REPLY TO POST ====================
 @login_required
 @require_POST
 def ajax_reply_to_post(request, post_id):
@@ -385,7 +367,7 @@ def ajax_reply_to_post(request, post_id):
         reply = Post.objects.create(
             author=request.user,
             post_type='TEXT',
-            title="",  # ← CRITICAL: Empty title removes bold text
+            title="",
             content=content.strip(),
             is_archived=False,
             parent=original,
@@ -490,29 +472,6 @@ def ajax_save_post(request, post_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-# ==================== AJAX SHARE POST ====================
-@login_required
-@require_POST
-def ajax_share_post(request, post_id):
-    try:
-        post = get_object_or_404(Post, id=post_id)
-        share, created = PostShare.objects.get_or_create(post=post, user=request.user)
-
-        if created and post.author != request.user:
-            Notification.objects.create(
-                recipient=post.author,
-                sender=request.user,
-                notification_type='share',
-                post=post
-            )
-
-        return JsonResponse({
-            'success': True,
-            'share_count': post.shares.count()
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
 # ==================== AJAX REPORT POST ====================
 @login_required
 @require_POST
@@ -562,50 +521,6 @@ def online_users_api(request):
         if cache.get(f'online_{user.id}'):
             count += 1
     return JsonResponse({'count': count})
-
-# ==================== LEGACY FUNCTIONS ====================
-@login_required
-def reply_to_comment(request, comment_id):
-    parent = get_object_or_404(Comment, id=comment_id)
-    if request.method == 'POST':
-        content = request.POST.get('content')
-        if content:
-            comment = Comment.objects.create(
-                post=parent.post,
-                author=request.user,
-                parent=parent,
-                content=content
-            )
-            if parent.author != request.user:
-                Notification.objects.create(
-                    recipient=parent.author,
-                    sender=request.user,
-                    notification_type='reply',
-                    post=parent.post,
-                    comment=comment
-                )
-            messages.success(request, 'Reply added!')
-    return redirect('post_detail', post_id=parent.post.id)
-
-@login_required
-@require_POST
-def react_to_comment(request, comment_id):
-    comment = get_object_or_404(Comment, id=comment_id)
-    existing = CommentReaction.objects.filter(comment=comment, user=request.user).first()
-
-    if existing:
-        existing.delete()
-    else:
-        CommentReaction.objects.create(comment=comment, user=request.user)
-        if comment.author != request.user:
-            Notification.objects.create(
-                recipient=comment.author,
-                sender=request.user,
-                notification_type='reaction',
-                post=comment.post,
-                comment=comment
-            )
-    return redirect('post_detail', post_id=comment.post.id)
 
 # ==================== MIGRATION HELPERS ====================
 @staff_member_required
