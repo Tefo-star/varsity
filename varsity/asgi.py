@@ -3,6 +3,7 @@ ASGI config for varsity project.
 """
 
 import os
+import django
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
@@ -11,11 +12,15 @@ from django.urls import path
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'varsity.settings')
 
-# Import WebSocket consumers
+# Initialize Django ASGI application early to ensure the AppRegistry
+# is populated before importing code that may import ORM models.
+django_asgi_app = get_asgi_application()
+
+# Now we can import consumers safely
 from posts.consumers import ChatConsumer, NotificationConsumer
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             URLRouter([
