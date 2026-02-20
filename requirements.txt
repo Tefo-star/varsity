@@ -14,3 +14,5 @@ redis==7.1.1
 sqlparse==0.5.5
 tzdata==2025.3
 whitenoise==6.11.0
+djangorestframework==3.16.1
+django-cors-headers==4.9.0
