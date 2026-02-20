@@ -47,15 +47,11 @@ urlpatterns = [
     path('ajax/post/<int:post_id>/reactions/', views.get_post_reactions, name='get_post_reactions'),
     path('ajax/post/<int:post_id>/reply/', views.ajax_reply_to_post, name='ajax_reply_to_post'),
     
-    # ============ NEW API ENDPOINTS FOR MOBILE APP ============
+    # ============ API ENDPOINTS FOR MOBILE APP ============
     path('api/', include(router.urls)),
     path('api/login/', LoginView.as_view(), name='api-login'),
     path('api/register/', RegisterView.as_view(), name='api-register'),
     path('api-auth/', include('rest_framework.urls')),
-    
-    # Legacy endpoints
-    path('comment/<int:comment_id>/reply/', views.reply_to_comment, name='reply_to_comment'),
-    path('comment/<int:comment_id>/react/', views.react_to_comment, name='react_to_comment'),
     
     # Migration helpers
     path('run-migrations/', views.run_posts_migrations, name='run_posts_migrations'),
