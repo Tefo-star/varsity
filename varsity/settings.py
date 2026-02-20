@@ -32,33 +32,18 @@ if DEBUG:
     ]
 
 # ============ SIMPLE COOKIE SETTINGS THAT WORK EVERYWHERE ============
-# Same exact settings for both local and Render - no more IF statements
-
-# Let browser handle the domain - remove domain restriction
 SESSION_COOKIE_DOMAIN = None
 CSRF_COOKIE_DOMAIN = None
-
-# Cookie security - set to work with both HTTP and HTTPS
-SESSION_COOKIE_SECURE = False  # False works with both local and Render
-CSRF_COOKIE_SECURE = False     # False works with both local and Render
-
-# SameSite settings
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
-
-# Cookie paths - ensure they're sent everywhere
 SESSION_COOKIE_PATH = '/'
 CSRF_COOKIE_PATH = '/'
-
-# HTTP-only settings
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = False  # Must be False for admin to work
-
-# Cookie ages
-SESSION_COOKIE_AGE = 1209600  # 2 weeks
-CSRF_COOKIE_AGE = 31449600    # 1 year
-
-# Ensure session engine uses database
+CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_AGE = 1209600
+CSRF_COOKIE_AGE = 31449600
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # Application definition
@@ -70,15 +55,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
     'cloudinary',
     'cloudinary_storage',
     'posts',
     'accounts',
     'ganalytics',
-    'resources',  # ADDED - Resources app for past papers and revision materials
+    'resources',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -109,13 +98,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'varsity.wsgi.application'
 ASGI_APPLICATION = 'varsity.asgi.application'
-
-# Channel layers for WebSocket
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
-    }
-}
 
 # Database
 import dj_database_url
@@ -186,5 +168,51 @@ CACHES = {
 }
 
 # ============ GOOGLE ANALYTICS ============
-# Your actual Google Analytics Measurement ID
 GANALYTICS_TRACKING_CODE = 'G-Z3MDMT6983'
+
+# ============ MOBILE APP API SETTINGS ============
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
+    ],
+}
+
+# CORS settings (for mobile app)
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8081",
+    "http://10.0.2.2:8081",
+]
+
+# Channels/WebSocket settings
+if 'REDIS_URL' in os.environ:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [os.environ['REDIS_URL']],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        }
+    }

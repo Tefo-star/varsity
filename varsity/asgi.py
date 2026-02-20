@@ -1,26 +1,27 @@
 """
 ASGI config for varsity project.
 """
-import os
-# Set the settings module FIRST, before any other imports
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'varsity.settings')
 
+import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
-import posts.routing
+from django.urls import path
 
-# Initialize Django ASGI application early to ensure the AppRegistry is populated
-django_asgi_app = get_asgi_application()
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'varsity.settings')
+
+# Import WebSocket consumers
+from posts.consumers import ChatConsumer, NotificationConsumer
 
 application = ProtocolTypeRouter({
-    'http': django_asgi_app,
-    'websocket': AllowedHostsOriginValidator(
+    "http": get_asgi_application(),
+    "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
-            URLRouter(
-                posts.routing.websocket_urlpatterns
-            )
+            URLRouter([
+                path("ws/chat/<str:room_name>/", ChatConsumer.as_asgi()),
+                path("ws/notifications/", NotificationConsumer.as_asgi()),
+            ])
         )
     ),
 })
